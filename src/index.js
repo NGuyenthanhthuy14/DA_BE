@@ -11,7 +11,7 @@ dotenv.config();
 const app = express();
 const port = process.env.SERVER_URL || 3001;
 
-mongoose.connect(`mongodb+srv://tan9992015:${process.env.MONGO_DB}@cluster0.comarde.mongodb.net/?retryWrites=true&w=majority`)
+mongoose.connect(`mongodb+srv://thuy0867090536_db_user:${process.env.MONGO_DB}@cluster0.i91q99o.mongodb.net/ecomweb?retryWrites=true&w=majority&appName=Cluster0`)
     .then(() => {
         console.log("Kết nối mongoose thành công");
     })

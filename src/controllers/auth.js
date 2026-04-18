@@ -1,25 +1,40 @@
 import * as service from '../services'
 import joi from 'joi'
 import {password,confirmPassword,email} from '../helpers/joi_validate'
-export const register = async(req,res) => {
-    try {
-        const {error} = joi.object({email,password,confirmPassword}).validate(req.body)
-        // console.log(error)
-        if(error) return res.status(400).json({
-            err: 1,
-            mes: error.details[0].message
-        })
-        const response = await service.registerService(req.body)
-        return res.status(200).json(response)
-    }catch(err){
-        console.log(err)
-        return res.status(500).json({
-            err: 1,
-            mess: 'có lỗi ở server'
-        })
-        
+export const register = async (req, res) => {
+  try {
+    const schema = joi.object({
+      email: joi.string().email().required(),
+      password: joi.string().min(6).required(),
+      confirmPassword: joi
+        .string()
+        .valid(joi.ref("password"))
+        .required()
+        .messages({
+          "any.only": "Mật khẩu nhập lại không khớp",
+        }),
+    });
+
+    const { error } = schema.validate(req.body);
+
+    if (error) {
+      return res.status(400).json({
+        err: 1,
+        mess: error.details[0].message,
+      });
     }
-}
+
+    const response = await service.registerService(req.body);
+
+    return res.status(200).json(response);
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({
+      err: 1,
+      mess: "Có lỗi ở server",
+    });
+  }
+};
 
 export const login = async(req,res) => {
     try{
