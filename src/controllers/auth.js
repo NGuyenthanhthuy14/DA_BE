@@ -1,21 +1,41 @@
-import * as service from '../services'
-import joi from 'joi'
-import {password,confirmPassword,email} from '../helpers/joi_validate'
+import * as service from "../services";
+import joi from "joi";
+import { password, email } from "../helpers/joi_validate";
+
 export const register = async (req, res) => {
   try {
     const schema = joi.object({
-      email: joi.string().email().required(),
-      password: joi.string().min(6).required(),
-      confirmPassword: joi
-        .string()
-        .valid(joi.ref("password"))
-        .required()
-        .messages({
-          "any.only": "Mật khẩu nhập lại không khớp",
-        }),
+      full_name: joi.string().trim().min(2).max(150).required().messages({
+        "string.empty": "Họ và tên không được để trống",
+        "string.min": "Họ và tên phải có ít nhất 2 ký tự",
+        "string.max": "Họ và tên không được vượt quá 150 ký tự",
+        "any.required": "Họ và tên là bắt buộc",
+      }),
+
+      email: joi.string().trim().email().max(150).required().messages({
+        "string.email": "Email không đúng định dạng",
+        "string.empty": "Email không được để trống",
+        "any.required": "Email là bắt buộc",
+      }),
+
+      phone: joi.string().trim().max(20).allow("", null).messages({
+        "string.max": "Số điện thoại không được vượt quá 20 ký tự",
+      }),
+
+      password: joi.string().min(6).required().messages({
+        "string.empty": "Mật khẩu không được để trống",
+        "string.min": "Mật khẩu phải có ít nhất 6 ký tự",
+        "any.required": "Mật khẩu là bắt buộc",
+      }),
+
+      confirmPassword: joi.string().valid(joi.ref("password")).required().messages({
+        "any.only": "Mật khẩu nhập lại không khớp",
+        "string.empty": "Vui lòng nhập lại mật khẩu",
+        "any.required": "Vui lòng nhập lại mật khẩu",
+      }),
     });
 
-    const { error } = schema.validate(req.body);
+    const { error } = schema.validate(req.body, { abortEarly: true });
 
     if (error) {
       return res.status(400).json({
@@ -28,7 +48,7 @@ export const register = async (req, res) => {
 
     return res.status(200).json(response);
   } catch (err) {
-    console.log(err);
+    console.log("REGISTER ERROR:", err);
     return res.status(500).json({
       err: 1,
       mess: "Có lỗi ở server",
@@ -36,29 +56,40 @@ export const register = async (req, res) => {
   }
 };
 
-export const login = async(req,res) => {
-    try{
-        const {error} = joi.object({email,password}).validate(req.body)
-        if(error) return res.status(400).json({
-            err:1,
-            mess:  error.details[0].message
-        })
-        const response = await service.loginService(req.body)
-        const {refreshToken, ...newResponse} = response
-        // console.log(response)
-        res.cookie('refreshToken',refreshToken, {
-            httpOnly : true,
-            sercure: false,
-            samesite: 'strict'
-        })
-        return res.status(200).json(newResponse)
-    }catch(err){
+export const login = async (req, res) => {
+    try {
+        const schema = joi.object({
+            email: joi.string().email().required(),
+            password: joi.string().required(),
+        });
+
+        const { error } = schema.validate(req.body);
+
+        if (error) {
+            return res.status(400).json({
+                err: 1,
+                mess: error.details[0].message,
+            });
+        }
+
+        const response = await service.loginService(req.body);
+
+        const { refreshToken, ...newResponse } = response;
+
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: false,
+            sameSite: 'strict',
+        });
+
+        return res.status(200).json(newResponse);
+    } catch (err) {
         return res.status(500).json({
             err: 1,
             mess: 'có lỗi ở server',
-        })
+        });
     }
-}
+};
 
 export const updateUser = async(req,res) => {
     try {
