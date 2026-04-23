@@ -2,6 +2,14 @@ import * as service from "../services";
 import joi from "joi";
 import { password, email } from "../helpers/joi_validate";
 
+const isProduction = process.env.NODE_ENV === "production";
+const refreshCookieOptions = {
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: isProduction ? "none" : "lax",
+  path: "/",
+};
+
 export const register = async (req, res) => {
   try {
     const schema = joi.object({
@@ -76,11 +84,7 @@ export const login = async (req, res) => {
 
         const { refreshToken, ...newResponse } = response;
 
-        res.cookie('refreshToken', refreshToken, {
-            httpOnly: true,
-            secure: false,
-            sameSite: 'strict',
-        });
+        res.cookie("refreshToken", refreshToken, refreshCookieOptions);
 
         return res.status(200).json(newResponse);
     } catch (err) {
@@ -180,11 +184,7 @@ export const refreshToken = async(req,res)=> {
 
 export const logout = async(req,res) => {
     try {
-        res.clearCookie('refreshToken', {
-            httpOnly: true,
-            secure: false,
-            sameSite: 'strict'
-        });
+        res.clearCookie("refreshToken", refreshCookieOptions);
         return res.status(200).json({
             err: 0,
             mess: 'đăng xuất thành công'

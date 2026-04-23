@@ -10,6 +10,12 @@ dotenv.config();
 
 const app = express();
 const port = process.env.SERVER_URL || 3001;
+const envOrigins = (process.env.CLIENT_URLS || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+const defaultOrigins = ["http://localhost:3000", "http://127.0.0.1:3000"];
+const allowedOrigins = new Set([...defaultOrigins, ...envOrigins]);
 
 mongoose.connect(`mongodb+srv://thuy0867090536_db_user:${process.env.MONGO_DB}@cluster0.i91q99o.mongodb.net/ecomweb?retryWrites=true&w=majority&appName=Cluster0`)
     .then(() => {
@@ -19,11 +25,23 @@ mongoose.connect(`mongodb+srv://thuy0867090536_db_user:${process.env.MONGO_DB}@c
         console.log(err);
     });
 
-app.use(cors({
-    origin: 'http://localhost:3000',
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    credentials: true // Cho phép sử dụng cookie qua CORS
-}));
+app.use(
+    cors({
+        origin: (origin, callback) => {
+            // Allow non-browser clients without Origin header
+            if (!origin) return callback(null, true);
+
+            const isLocalDevIp = /^http:\/\/\d{1,3}(\.\d{1,3}){3}:3000$/.test(origin);
+            if (allowedOrigins.has(origin) || isLocalDevIp) {
+                return callback(null, true);
+            }
+
+            return callback(new Error(`CORS blocked for origin: ${origin}`));
+        },
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        credentials: true, // Cho phép sử dụng cookie qua CORS
+    })
+);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

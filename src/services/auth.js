@@ -10,7 +10,6 @@ export const registerService = (body) =>
     try {
       const { full_name, email, phone, password, confirmPassword } = body;
       const normalizedEmail = email?.trim()?.toLowerCase();
-      const normalizedPhone = phone?.trim?.();
 
       const checkEmailExist = await db.User.findOne({ email: normalizedEmail });
       if (checkEmailExist) {
@@ -20,15 +19,6 @@ export const registerService = (body) =>
         });
       }
 
-      if (normalizedPhone) {
-        const checkPhoneExist = await db.User.findOne({ phone: normalizedPhone });
-        if (checkPhoneExist) {
-          return resolve({
-            err: 1,
-            mess: "Số điện thoại đã tồn tại, vui lòng dùng số khác",
-          });
-        }
-      }
 
       if (password !== confirmPassword) {
         return resolve({
@@ -40,7 +30,6 @@ export const registerService = (body) =>
       const response = await db.User.create({
         full_name,
         email: normalizedEmail,
-        phone: normalizedPhone || null,
         password_hash: hashPassword(password),
         role: "user",
       });
@@ -87,6 +76,7 @@ export const loginService = async (body) => {
       mess: "Email hoặc mật khẩu không đúng",
       accessToken: null,
       refreshToken: null,
+      user: null,
     };
   }
 
@@ -98,6 +88,7 @@ export const loginService = async (body) => {
       mess: "Email hoặc mật khẩu không đúng",
       accessToken: null,
       refreshToken: null,
+      user: null,
     };
   }
 
@@ -120,5 +111,15 @@ export const loginService = async (body) => {
     mess: "Đăng nhập thành công",
     accessToken,
     refreshToken,
+    user: {
+      id: user.id,
+      full_name: user.full_name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      avatarUrl: user.avatar_url,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
+    },
   };
 };

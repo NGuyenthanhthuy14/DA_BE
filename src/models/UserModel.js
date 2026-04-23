@@ -18,7 +18,7 @@ const userSchema = new mongoose.Schema(
 
     phone: {
       type: String,
-      unique: true,
+      unique: false,
       sparse: true, 
     },
 
@@ -33,7 +33,7 @@ const userSchema = new mongoose.Schema(
       default: "user",
     },
 
-    avatar: {
+    avatar_url: {
       type: String,
       default: "",
     },
