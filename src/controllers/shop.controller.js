@@ -94,10 +94,44 @@ const getNearbyShops = async (req, res) => {
   }
 };
 
+const getShopsWithSpecialties = async (req, res) => {
+  try {
+    const { lat, lng } = req.query;
+
+    const shops = await shopService.getShopsWithSpecialties({
+      lat: lat ? Number(lat) : undefined,
+      lng: lng ? Number(lng) : undefined,
+    });
+
+    return successResponse(
+      res,
+      shops,
+      "Lấy danh sách quán kèm specialties thành công"
+    );
+  } catch (error) {
+    return errorResponse(res, error.message || "Có lỗi ở server");
+  }
+};
+
+const getShopProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const products = await shopService.getShopProduct(id);
+    return successResponse(res, products, "Lấy sản phẩm của shop thành công");
+  } catch (error) {
+    if (error.message === "SHOP_NOT_FOUND") {
+      return errorResponse(res, "Không tìm thấy shop", 404, "NOT_FOUND");
+    }
+
+    return errorResponse(res, error.message || "Có lỗi ở server");
+  }
+};
 module.exports = {
   createShop,
   getAllShops,
   getShopBySlug,
   updateShop,
   getNearbyShops,
+  getShopsWithSpecialties,
+  getShopProduct
 };

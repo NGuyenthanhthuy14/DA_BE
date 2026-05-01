@@ -2,7 +2,7 @@ import db from '../models'
 
 export const createProductService =(body) => (new Promise(async(resolve,reject)=> {
     try {
-        const {name,image, type, price, countInStock,rating,description} = body
+        const {name,image, type, price, countInStock,rating,description, shop_id} = body
         const checkExist = await db.Product.findOne({
             name: name
         })
@@ -20,7 +20,8 @@ export const createProductService =(body) => (new Promise(async(resolve,reject)=
             price, 
             countInStock,
             rating,
-            description
+                description,
+                shop_id: shop_id || null
          })
          resolve({
             err: response ? 0 : 1,
@@ -155,5 +156,123 @@ export const getAllTypeService = () => (new Promise(async(resolve,reject)=> {
         })
     } catch (error) {
         reject(error)
+    }
+}))
+
+export const getNearbyProductsService = (lat, lng, maxKm = 20, limit = 20) => (new Promise(async (resolve, reject) => {
+    try {
+        const latNum = Number(lat);
+        const lngNum = Number(lng);
+        const maxKmNum = Number(maxKm);
+        const limitNum = Number(limit);
+
+        if (!Number.isFinite(latNum) || !Number.isFinite(lngNum)) {
+            resolve({
+                err: 1,
+                mess: 'tọa độ không hợp lệ',
+                data: [],
+                total: 0,
+            });
+            return;
+        }
+
+        const response = await db.Product.aggregate([
+            {
+                $lookup: {
+                    from: "shops",
+                    let: { productShopId: "$shop_id" },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $or: [
+                                        { $eq: ["$_id", "$$productShopId"] },
+                                        { $eq: [{ $toString: "$_id" }, { $toString: "$$productShopId" }] },
+                                    ],
+                                },
+                            },
+                        },
+                    ],
+                    as: "shop",
+                },
+            },
+            {
+                $unwind: {
+                    path: "$shop",
+                    preserveNullAndEmptyArrays: false,
+                },
+            },
+            {
+                $match: {
+                    "shop.status": "active",
+                },
+            },
+            {
+                $addFields: {
+                    distanceKm: {
+                        $round: [
+                            {
+                                $multiply: [
+                                    {
+                                        $sqrt: {
+                                            $add: [
+                                                { $pow: [{ $subtract: ["$shop.longitude", lngNum] }, 2] },
+                                                { $pow: [{ $subtract: ["$shop.latitude", latNum] }, 2] },
+                                            ],
+                                        },
+                                    },
+                                    111,
+                                ],
+                            },
+                            2,
+                        ],
+                    },
+                },
+            },
+            {
+                $match: {
+                    distanceKm: { $lte: Number.isFinite(maxKmNum) && maxKmNum > 0 ? maxKmNum : 20 },
+                },
+            },
+            {
+                $sort: { distanceKm: 1 },
+            },
+            {
+                $limit: Number.isFinite(limitNum) && limitNum > 0 ? limitNum : 20,
+            },
+            {
+                $project: {
+                    _id: 1,
+                    name: 1,
+                    image: 1,
+                    type: 1,
+                    price: 1,
+                    rating: 1,
+                    description: 1,
+                    discount: 1,
+                    sold: 1,
+                    distanceKm: 1,
+                    shop: {
+                        _id: "$shop._id",
+                        name: "$shop.name",
+                        slug: "$shop.slug",
+                        address: "$shop.address",
+                        formatted_address: "$shop.formatted_address",
+                        cover_image: "$shop.cover_image",
+                        latitude: "$shop.latitude",
+                        longitude: "$shop.longitude",
+                    },
+                },
+            },
+        ]);
+
+        resolve({
+            err: 0,
+            mess: 'lấy sản phẩm gần bạn thành công',
+            data: response,
+            total: response.length,
+        });
+    } catch (error) {
+        reject(error);
     }
 }))

@@ -1,6 +1,11 @@
 const mongoose = require('mongoose')
 
 const productSchema = new mongoose.Schema({
+    shop_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Shop',
+        default: null,
+    },
     name: {type:String, unique: true},
     image: {type:String},
     type: {type:String},

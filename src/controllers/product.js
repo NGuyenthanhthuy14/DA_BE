@@ -1,10 +1,10 @@
 import joi from 'joi'
-import {name,image, type, price, countInStock,rating,description} from '../helpers/joi_validate'
+import {name,image, type, price, countInStock,rating,description,shop_id} from '../helpers/joi_validate'
 import * as service from '../services'
 export const createProduct = async(req,res) => {
    try {
     console.log(req.body)
-    const {error} = joi.object({name,image, type, price, countInStock,rating,description}).validate(req.body)
+    const {error} = joi.object({name,image, type, price, countInStock,rating,description,shop_id}).validate(req.body)
     if(error) return res.status(400).json({
         err: 1,
         mess: 'dữ liệu sản phẩm sai hoặc không đầy đủ'
@@ -113,3 +113,26 @@ export const getAllType = async(req,res)=> {
         })
     }
 }
+
+export const getNearbyProducts = async(req,res)=>{
+    try {
+        const { lat, lng, maxKm, limit } = req.query
+        if(!lat || !lng) return res.status(400).json({
+            err: 1,
+            mess: 'cần truyền lat và lng'
+        })
+        const response = await service.getNearbyProductsService(
+            Number(lat),
+            Number(lng),
+            Number(maxKm) || 20,
+            Number(limit) || 20
+        )
+        return res.status(200).json(response)
+    } catch (error) {
+        return res.status(500).json({
+            err: 1,
+            mess: 'có lỗi ở server'
+        })
+    }
+}
+
