@@ -1,6 +1,6 @@
-const orderService = require('../services/order.service')
+import orderService from '../services/order.service'
 
-const createOrder = async (req, res) => {
+export const createOrder = async (req, res) => {
     try {
         const body = req.body
         if (!body) return res.status(400).json({
@@ -19,7 +19,7 @@ const createOrder = async (req, res) => {
     }
 }
 
-const getOrdersByUser = async (req, res) => {
+export const getOrdersByUser = async (req, res) => {
     try {
         const userId = req.params.userId
         if (!userId) return res.status(400).json({
@@ -38,7 +38,7 @@ const getOrdersByUser = async (req, res) => {
     }
 }
 
-const getOrderDetail = async (req, res) => {
+export const getOrderDetail = async (req, res) => {
     try {
         const orderId = req.params.id
         if (!orderId) return res.status(400).json({
@@ -57,7 +57,7 @@ const getOrderDetail = async (req, res) => {
     }
 }
 
-const getAllOrders = async (req, res) => {
+export const getAllOrders = async (req, res) => {
     try {
         const { limit, page } = req.query
         const response = await orderService.getAllOrdersService(
@@ -74,7 +74,7 @@ const getAllOrders = async (req, res) => {
     }
 }
 
-const updateOrderStatus = async (req, res) => {
+export const updateOrderStatus = async (req, res) => {
     try {
         const orderId = req.params.id
         const { status } = req.body
@@ -94,10 +94,3 @@ const updateOrderStatus = async (req, res) => {
     }
 }
 
-module.exports = {
-    createOrder,
-    getOrdersByUser,
-    getOrderDetail,
-    getAllOrders,
-    updateOrderStatus,
-}

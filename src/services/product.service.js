@@ -1,5 +1,6 @@
 import db from '../models'
 import slugify from 'slugify';
+import mongoose from 'mongoose';
 
 export const createProductService =(body) => (new Promise(async(resolve,reject)=> {
     try {
@@ -78,7 +79,6 @@ export const getDetailProductService = (id) => (new Promise(async(resolve,reject
 export const getAllProductService = (limit,page,sort,filter) => (new Promise(async(resolve,reject)=>{
     try {
         const totalProducts = await db.Product.countDocuments()
-        const mongoose = require('mongoose');
         if(filter){
             // console.log(filter)
             let query = {};

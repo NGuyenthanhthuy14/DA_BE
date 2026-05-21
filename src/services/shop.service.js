@@ -1,7 +1,7 @@
-const Shop = require("../models/shop.model");
-const Product = require("../models/ProductModel");
-const { makeSlug } = require("../utils/slugify.util");
-const mongoose = require("mongoose");
+import Shop from "../models/shop.model";
+import Product from "../models/ProductModel";
+import { makeSlug } from "../utils/slugify.util";
+import mongoose from "mongoose";
 
 const generateUniqueSlug = async (name) => {
   const baseSlug = makeSlug(name);
@@ -16,7 +16,7 @@ const generateUniqueSlug = async (name) => {
   return slug;
 };
 
-const createShop = async (body) => {
+export const createShop = async (body) => {
   const {
     owner_id,
     name,
@@ -53,19 +53,19 @@ const createShop = async (body) => {
   return newShop;
 };
 
-const getAllShops = async (filter = {}) => {
+export const getAllShops = async (filter = {}) => {
   return await Shop.find(filter).sort({ created_at: -1 }).lean();
 };
 
-const getShopBySlug = async (slug) => {
+export const getShopBySlug = async (slug) => {
   return await Shop.findOne({ slug });
 };
 
-const getShopById = async (id) => {
+export const getShopById = async (id) => {
   return await Shop.findById(id);
 };
 
-const getShopProduct = async (shopId) => {
+export const getShopProduct = async (shopId) => {
   let shop;
   if (mongoose.Types.ObjectId.isValid(shopId)) {
     shop = await Shop.findOne({
@@ -90,11 +90,7 @@ const getShopProduct = async (shopId) => {
   return products;
 };
 
-module.exports = {
-  getShopProduct,
-};
-
-const updateShop = async (id, body) => {
+export const updateShop = async (id, body) => {
   const shop = await Shop.findById(id);
   if (!shop) {
     throw new Error("SHOP_NOT_FOUND");
@@ -124,7 +120,7 @@ const updateShop = async (id, body) => {
   return updatedShop;
 };
 
-const getNearbyShops = async ({ lat, lng, maxDistance = 2000 }) => {
+export const getNearbyShops = async ({ lat, lng, maxDistance = 2000 }) => {
   return await Shop.find({
     status: "active",
     location: {
@@ -139,7 +135,7 @@ const getNearbyShops = async ({ lat, lng, maxDistance = 2000 }) => {
   });
 };
 
-const getShopsWithSpecialties = async ({ lat, lng } = {}) => {
+export const getShopsWithSpecialties = async ({ lat, lng } = {}) => {
   const hasLocation =
     typeof lat === "number" &&
     typeof lng === "number" &&
@@ -269,13 +265,13 @@ const getShopsWithSpecialties = async ({ lat, lng } = {}) => {
   ]);
 };
 
-const deleteShop = async (id) => {
+export const deleteShop = async (id) => {
   const shop = await Shop.findByIdAndDelete(id);
   if (!shop) throw new Error("SHOP_NOT_FOUND");
   return shop;
 };
 
-module.exports = {
+export default {
   createShop,
   getAllShops,
   getShopBySlug,

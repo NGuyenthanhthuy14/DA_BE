@@ -1,6 +1,6 @@
 import db from "../models";
 import bcrypt from "bcrypt";
-import { generateAccessToken, generateRefreshToken } from "./jwt";
+import { generateAccessToken, generateRefreshToken } from "./jwt.service";
 
 const hashPassword = (password) =>
   bcrypt.hashSync(password, bcrypt.genSaltSync(8));

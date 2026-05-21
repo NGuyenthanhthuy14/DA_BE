@@ -1,9 +1,9 @@
-const OrderProduct = require('../models/OrderProduct')
+import OrderProduct from '../models/OrderProduct'
 
 /**
  * Tạo đơn hàng mới – lưu hoá đơn đầy đủ kể cả tổng tiền từng shop
  */
-const createOrderService = (body) => (new Promise(async (resolve, reject) => {
+export const createOrderService = (body) => (new Promise(async (resolve, reject) => {
     try {
         const {
             userId,
@@ -48,7 +48,7 @@ const createOrderService = (body) => (new Promise(async (resolve, reject) => {
 /**
  * Lấy danh sách đơn hàng theo user
  */
-const getOrdersByUserService = (userId) => (new Promise(async (resolve, reject) => {
+export const getOrdersByUserService = (userId) => (new Promise(async (resolve, reject) => {
     try {
         const orders = await OrderProduct.find({ user: userId })
             .sort({ createdAt: -1 })
@@ -68,7 +68,7 @@ const getOrdersByUserService = (userId) => (new Promise(async (resolve, reject) 
 /**
  * Lấy chi tiết một đơn hàng
  */
-const getOrderDetailService = (orderId) => (new Promise(async (resolve, reject) => {
+export const getOrderDetailService = (orderId) => (new Promise(async (resolve, reject) => {
     try {
         const order = await OrderProduct.findById(orderId)
             .populate('user', 'full_name email phone')
@@ -96,7 +96,7 @@ const getOrderDetailService = (orderId) => (new Promise(async (resolve, reject) 
 /**
  * Lấy tất cả đơn hàng (admin)
  */
-const getAllOrdersService = (limit = 20, page = 1) => (new Promise(async (resolve, reject) => {
+export const getAllOrdersService = (limit = 20, page = 1) => (new Promise(async (resolve, reject) => {
     try {
         const totalOrders = await OrderProduct.countDocuments()
         const orders = await OrderProduct.find()
@@ -121,7 +121,7 @@ const getAllOrdersService = (limit = 20, page = 1) => (new Promise(async (resolv
 /**
  * Cập nhật trạng thái đơn hàng
  */
-const updateOrderStatusService = (orderId, status) => (new Promise(async (resolve, reject) => {
+export const updateOrderStatusService = (orderId, status) => (new Promise(async (resolve, reject) => {
     try {
         const updateData = { status }
 
@@ -151,7 +151,7 @@ const updateOrderStatusService = (orderId, status) => (new Promise(async (resolv
     }
 }))
 
-module.exports = {
+export default {
     createOrderService,
     getOrdersByUserService,
     getOrderDetailService,

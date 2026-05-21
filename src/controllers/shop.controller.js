@@ -1,7 +1,7 @@
-const shopService = require("../services/shop.service");
-const { successResponse, errorResponse } = require("../utils/response.util");
+import shopService from "../services/shop.service";
+import { successResponse, errorResponse } from "../utils/response.util";
 
-const createShop = async (req, res) => {
+export const createShop = async (req, res) => {
   try {
     const {
       owner_id,
@@ -26,7 +26,7 @@ const createShop = async (req, res) => {
   }
 };
 
-const getAllShops = async (req, res) => {
+export const getAllShops = async (req, res) => {
   try {
     const { owner_id } = req.query;
     const filter = {};
@@ -39,7 +39,7 @@ const getAllShops = async (req, res) => {
   }
 };
 
-const getShopBySlug = async (req, res) => {
+export const getShopBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
     const shop = await shopService.getShopBySlug(slug);
@@ -54,7 +54,7 @@ const getShopBySlug = async (req, res) => {
   }
 };
 
-const updateShop = async (req, res) => {
+export const updateShop = async (req, res) => {
   try {
     const { id } = req.params;
     const payload = { ...req.body };
@@ -74,7 +74,7 @@ const updateShop = async (req, res) => {
   }
 };
 
-const getNearbyShops = async (req, res) => {
+export const getNearbyShops = async (req, res) => {
   try {
     const { lat, lng, maxDistance } = req.query;
 
@@ -94,7 +94,7 @@ const getNearbyShops = async (req, res) => {
   }
 };
 
-const getShopsWithSpecialties = async (req, res) => {
+export const getShopsWithSpecialties = async (req, res) => {
   try {
     const { lat, lng } = req.query;
 
@@ -113,7 +113,7 @@ const getShopsWithSpecialties = async (req, res) => {
   }
 };
 
-const getShopProduct = async (req, res) => {
+export const getShopProduct = async (req, res) => {
   try {
     const { id } = req.params;
     const products = await shopService.getShopProduct(id);
@@ -126,7 +126,7 @@ const getShopProduct = async (req, res) => {
     return errorResponse(res, error.message || "Có lỗi ở server");
   }
 };
-const deleteShop = async (req, res) => {
+export const deleteShop = async (req, res) => {
   try {
     const { id } = req.params;
     await shopService.deleteShop(id);
@@ -139,13 +139,3 @@ const deleteShop = async (req, res) => {
   }
 };
 
-module.exports = {
-  createShop,
-  getAllShops,
-  getShopBySlug,
-  updateShop,
-  deleteShop,
-  getNearbyShops,
-  getShopsWithSpecialties,
-  getShopProduct
-};

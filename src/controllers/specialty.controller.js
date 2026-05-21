@@ -1,7 +1,7 @@
-const specialtyService = require("../services/specialty.service");
-const { successResponse, errorResponse } = require("../utils/response.util");
+import specialtyService from "../services/specialty.service";
+import { successResponse, errorResponse } from "../utils/response.util";
 
-const createSpecialty = async (req, res) => {
+export const createSpecialty = async (req, res) => {
   try {
     const specialty = await specialtyService.createSpecialty(req.body);
     return successResponse(res, specialty, "Tạo đặc sản thành công", 201);
@@ -22,7 +22,7 @@ const createSpecialty = async (req, res) => {
   }
 };
 
-const getAllSpecialties = async (req, res) => {
+export const getAllSpecialties = async (req, res) => {
   try {
     const specialties = await specialtyService.getAllSpecialties();
     return successResponse(res, specialties, "Lấy danh sách đặc sản thành công");
@@ -31,7 +31,7 @@ const getAllSpecialties = async (req, res) => {
   }
 };
 
-const getSpecialtyBySlug = async (req, res) => {
+export const getSpecialtyBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
     const specialty = await specialtyService.getSpecialtyBySlug(slug);
@@ -46,7 +46,7 @@ const getSpecialtyBySlug = async (req, res) => {
   }
 };
 
-const updateSpecialty = async (req, res) => {
+export const updateSpecialty = async (req, res) => {
   try {
     const { id } = req.params;
     const specialty = await specialtyService.updateSpecialty(id, req.body);
@@ -68,7 +68,7 @@ const updateSpecialty = async (req, res) => {
   }
 };
 
-const deleteSpecialty = async (req, res) => {
+export const deleteSpecialty = async (req, res) => {
   try {
     const { id } = req.params;
     await specialtyService.deleteSpecialty(id);
@@ -95,10 +95,3 @@ const deleteSpecialty = async (req, res) => {
   }
 };
 
-module.exports = {
-  createSpecialty,
-  getAllSpecialties,
-  getSpecialtyBySlug,
-  updateSpecialty,
-  deleteSpecialty,
-};

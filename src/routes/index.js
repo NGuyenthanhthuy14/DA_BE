@@ -1,5 +1,5 @@
-import user from './auth'
-import product from './product'
+import user from './auth.route'
+import product from './product.route'
 import shopRoute from './shop.route'
 import specialtyRoute from './specialty.route'
 const orderRoute = require('./order.route')

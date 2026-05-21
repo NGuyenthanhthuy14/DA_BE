@@ -1,15 +1,15 @@
-const Category = require("../models/CategoryModel");
-const slugify = require("slugify");
+import Category from "../models/CategoryModel";
+import slugify from "slugify";
 
-const getAllCategories = async () => {
+export const getAllCategories = async () => {
   return await Category.find().sort({ created_at: -1 }).lean();
 };
 
-const getCategoryBySlug = async (slug) => {
+export const getCategoryBySlug = async (slug) => {
   return await Category.findOne({ slug }).lean();
 };
 
-const createCategory = async (data) => {
+export const createCategory = async (data) => {
   let slug = data.slug;
   if (!slug && data.name) {
     slug = slugify(data.name, { lower: true, strict: true, locale: 'vi' });
@@ -26,7 +26,7 @@ const createCategory = async (data) => {
   return await category.save();
 };
 
-const updateCategory = async (id, data) => {
+export const updateCategory = async (id, data) => {
   if (data.name && !data.slug) {
     data.slug = slugify(data.name, { lower: true, strict: true, locale: 'vi' });
   }
@@ -34,11 +34,11 @@ const updateCategory = async (id, data) => {
   return await Category.findByIdAndUpdate(id, data, { new: true });
 };
 
-const deleteCategory = async (id) => {
+export const deleteCategory = async (id) => {
   return await Category.findByIdAndDelete(id);
 };
 
-module.exports = {
+export default {
   getAllCategories,
   getCategoryBySlug,
   createCategory,

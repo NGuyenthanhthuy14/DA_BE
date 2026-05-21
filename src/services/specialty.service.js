@@ -1,7 +1,7 @@
-const Specialty = require("../models/SpecialtyModel");
-const Product = require("../models/ProductModel");
-const { makeSlug } = require("../utils/slugify.util");
-const mongoose = require("mongoose");
+import Specialty from "../models/SpecialtyModel";
+import Product from "../models/ProductModel";
+import { makeSlug } from "../utils/slugify.util";
+import mongoose from "mongoose";
 
 const generateUniqueSlug = async (name, excludeId = null) => {
   const baseSlug = makeSlug(name) || Date.now().toString();
@@ -24,7 +24,7 @@ const generateUniqueSlug = async (name, excludeId = null) => {
   return slug;
 };
 
-const createSpecialty = async (body) => {
+export const createSpecialty = async (body) => {
   const { category_id, name, description, image_url, slug } = body;
 
   if (!name) {
@@ -46,12 +46,12 @@ const createSpecialty = async (body) => {
   });
 };
 
-const getAllSpecialties = async () => {
+export const getAllSpecialties = async () => {
   return await Specialty.find().sort({ created_at: -1 }).lean();
 };
 
 
-const getSpecialtyBySlug = async (slug) => {
+export const getSpecialtyBySlug = async (slug) => {
   const specialty = await Specialty.findOne({ slug }).lean();
   if (!specialty) return null;
 
@@ -124,7 +124,7 @@ const getSpecialtyBySlug = async (slug) => {
   };
 };
 
-const updateSpecialty = async (id, body) => {
+export const updateSpecialty = async (id, body) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new Error("INVALID_ID");
   }
@@ -148,7 +148,7 @@ const updateSpecialty = async (id, body) => {
   });
 };
 
-const deleteSpecialty = async (id) => {
+export const deleteSpecialty = async (id) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new Error("INVALID_ID");
   }
@@ -173,7 +173,7 @@ const deleteSpecialty = async (id) => {
   return await Specialty.findByIdAndDelete(id);
 };
 
-module.exports = {
+export default {
   createSpecialty,
   getAllSpecialties,
   getSpecialtyBySlug,
