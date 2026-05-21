@@ -1,7 +1,50 @@
 const Specialty = require("../models/SpecialtyModel");
 const Product = require("../models/ProductModel");
+const { makeSlug } = require("../utils/slugify.util");
 const mongoose = require("mongoose");
 
+const generateUniqueSlug = async (name, excludeId = null) => {
+  const baseSlug = makeSlug(name) || Date.now().toString();
+  let slug = baseSlug;
+  let count = 1;
+
+  while (true) {
+    const query = { slug };
+    if (excludeId) {
+      query._id = { $ne: excludeId };
+    }
+
+    const existing = await Specialty.findOne(query).lean();
+    if (!existing) break;
+
+    count += 1;
+    slug = `${baseSlug}-${count}`;
+  }
+
+  return slug;
+};
+
+const createSpecialty = async (body) => {
+  const { category_id, name, description, image_url, slug } = body;
+
+  if (!name) {
+    throw new Error("NAME_REQUIRED");
+  }
+
+  if (!category_id) {
+    throw new Error("CATEGORY_REQUIRED");
+  }
+
+  const newSlug = await generateUniqueSlug(slug || name);
+
+  return await Specialty.create({
+    category_id,
+    name,
+    slug: newSlug,
+    description: description || "",
+    image_url: image_url || "",
+  });
+};
 
 const getAllSpecialties = async () => {
   return await Specialty.find().sort({ created_at: -1 }).lean();
@@ -81,7 +124,59 @@ const getSpecialtyBySlug = async (slug) => {
   };
 };
 
+const updateSpecialty = async (id, body) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new Error("INVALID_ID");
+  }
+
+  const specialty = await Specialty.findById(id);
+  if (!specialty) {
+    throw new Error("SPECIALTY_NOT_FOUND");
+  }
+
+  const updateData = { ...body };
+
+  if (updateData.slug) {
+    updateData.slug = await generateUniqueSlug(updateData.slug, id);
+  } else if (updateData.name && updateData.name !== specialty.name) {
+    updateData.slug = await generateUniqueSlug(updateData.name, id);
+  }
+
+  return await Specialty.findByIdAndUpdate(id, updateData, {
+    new: true,
+    runValidators: true,
+  });
+};
+
+const deleteSpecialty = async (id) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new Error("INVALID_ID");
+  }
+
+  const specialty = await Specialty.findById(id);
+  if (!specialty) {
+    throw new Error("SPECIALTY_NOT_FOUND");
+  }
+
+  const specialtyIdStr = specialty._id.toString();
+  const relatedProductCount = await Product.countDocuments({
+    $or: [
+      { specialty_id: specialty._id },
+      { specialty_id: specialtyIdStr },
+    ],
+  });
+
+  if (relatedProductCount > 0) {
+    throw new Error("SPECIALTY_HAS_PRODUCTS");
+  }
+
+  return await Specialty.findByIdAndDelete(id);
+};
+
 module.exports = {
+  createSpecialty,
   getAllSpecialties,
   getSpecialtyBySlug,
+  updateSpecialty,
+  deleteSpecialty,
 };
