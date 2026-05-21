@@ -1,4 +1,5 @@
 import Category from "../models/CategoryModel";
+import Product from "../models/ProductModel";
 import Shop from "../models/shop.model";
 import slugify from "slugify";
 
@@ -114,7 +115,37 @@ export const validateApprovalStatus = (approvalStatus) => {
 };
 
 export const deleteCategory = async (id) => {
-  return await Category.findByIdAndDelete(id);
+  const category = await Category.findById(id);
+  if (!category) {
+    return null;
+  }
+
+  const productCount = await Product.countDocuments({
+    category_id: { $in: [id, String(id), category._id, String(category._id)] },
+  });
+
+  if (productCount > 0) {
+    const inactiveCategory = await Category.findByIdAndUpdate(
+      id,
+      { status: "inactive" },
+      { new: true, runValidators: true }
+    );
+
+    return {
+      category: inactiveCategory,
+      deleted: false,
+      softDeleted: true,
+      productCount,
+    };
+  }
+
+  const deletedCategory = await Category.findByIdAndDelete(id);
+  return {
+    category: deletedCategory,
+    deleted: true,
+    softDeleted: false,
+    productCount: 0,
+  };
 };
 
 export default {

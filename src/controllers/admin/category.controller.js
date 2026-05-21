@@ -17,13 +17,13 @@ export const getAllCategories = async (req, res) => {
     const categories = await categoryService.getAllCategories(filter);
     return res.status(200).json({
       err: 0,
-      mess: "Lấy danh sách danh mục thành công",
+      mess: "Lay danh sach danh muc thanh cong",
       data: categories,
     });
   } catch (error) {
     return res.status(500).json({
       err: 1,
-      mess: "Lỗi server khi lấy danh sách danh mục",
+      mess: "Loi server khi lay danh sach danh muc",
     });
   }
 };
@@ -35,19 +35,19 @@ export const getCategoryBySlug = async (req, res) => {
     if (!category) {
       return res.status(404).json({
         err: 1,
-        mess: "Không tìm thấy danh mục",
+        mess: "Khong tim thay danh muc",
       });
     }
 
     return res.status(200).json({
       err: 0,
-      mess: "Lấy chi tiết danh mục thành công",
+      mess: "Lay chi tiet danh muc thanh cong",
       data: category,
     });
   } catch (error) {
     return res.status(500).json({
       err: 1,
-      mess: "Lỗi server khi lấy chi tiết danh mục",
+      mess: "Loi server khi lay chi tiet danh muc",
     });
   }
 };
@@ -58,7 +58,7 @@ export const createCategory = async (req, res) => {
     if (!name) {
       return res.status(400).json({
         err: 1,
-        mess: "Tên danh mục là bắt buộc",
+        mess: "Ten danh muc la bat buoc",
       });
     }
 
@@ -69,20 +69,20 @@ export const createCategory = async (req, res) => {
     });
     return res.status(201).json({
       err: 0,
-      mess: "Tạo danh mục thành công",
+      mess: "Tao danh muc thanh cong",
       data: category,
     });
   } catch (error) {
     if (error.code === 11000) {
       return res.status(400).json({
         err: 1,
-        mess: "Tên hoặc slug danh mục đã tồn tại",
+        mess: "Ten hoac slug danh muc da ton tai",
       });
     }
 
     return res.status(500).json({
       err: 1,
-      mess: "Lỗi server khi tạo danh mục",
+      mess: "Loi server khi tao danh muc",
     });
   }
 };
@@ -94,26 +94,26 @@ export const updateCategory = async (req, res) => {
     if (!category) {
       return res.status(404).json({
         err: 1,
-        mess: "Không tìm thấy danh mục để cập nhật",
+        mess: "Khong tim thay danh muc de cap nhat",
       });
     }
 
     return res.status(200).json({
       err: 0,
-      mess: "Cập nhật danh mục thành công",
+      mess: "Cap nhat danh muc thanh cong",
       data: category,
     });
   } catch (error) {
     if (error.code === 11000) {
       return res.status(400).json({
         err: 1,
-        mess: "Tên hoặc slug danh mục đã tồn tại",
+        mess: "Ten hoac slug danh muc da ton tai",
       });
     }
 
     return res.status(500).json({
       err: 1,
-      mess: "Lỗi server khi cập nhật danh mục",
+      mess: "Loi server khi cap nhat danh muc",
     });
   }
 };
@@ -170,22 +170,34 @@ export const rejectCategory = async (req, res) => {
 export const deleteCategory = async (req, res) => {
   try {
     const { id } = req.params;
-    const category = await categoryService.deleteCategory(id);
-    if (!category) {
+    const result = await categoryService.deleteCategory(id);
+    if (!result) {
       return res.status(404).json({
         err: 1,
-        mess: "Không tìm thấy danh mục để xóa",
+        mess: "Khong tim thay danh muc de xoa",
+      });
+    }
+
+    if (result.softDeleted) {
+      return res.status(200).json({
+        err: 0,
+        mess: "Danh muc dang co san pham tham chieu nen da chuyen sang inactive",
+        data: result.category,
+        productCount: result.productCount,
+        softDeleted: true,
       });
     }
 
     return res.status(200).json({
       err: 0,
-      mess: "Xóa danh mục thành công",
+      mess: "Xoa danh muc thanh cong",
+      data: result.category,
+      softDeleted: false,
     });
   } catch (error) {
     return res.status(500).json({
       err: 1,
-      mess: "Lỗi server khi xóa danh mục",
+      mess: "Loi server khi xoa danh muc",
     });
   }
 };
