@@ -1,96 +1,61 @@
-import orderService from '../services/order.service'
+import orderService from "../services/order.service";
 
 export const createOrder = async (req, res) => {
-    try {
-        const body = req.body
-        if (!body) return res.status(400).json({
-            err: 1,
-            mess: 'Dữ liệu đơn hàng không được để trống'
-        })
-
-        const response = await orderService.createOrderService(body)
-        return res.status(200).json(response)
-    } catch (error) {
-        console.error('createOrder error:', error)
-        return res.status(500).json({
-            err: 1,
-            mess: 'Có lỗi khi tạo đơn hàng'
-        })
+  try {
+    const body = req.body;
+    if (!body) {
+      return res.status(400).json({
+        err: 1,
+        mess: "Order data is required",
+      });
     }
-}
+
+    const response = await orderService.createOrderService(body);
+    return res.status(200).json(response);
+  } catch (error) {
+    return res.status(500).json({
+      err: 1,
+      mess: "Server error when creating order",
+    });
+  }
+};
 
 export const getOrdersByUser = async (req, res) => {
-    try {
-        const userId = req.params.userId
-        if (!userId) return res.status(400).json({
-            err: 1,
-            mess: 'Cần truyền userId'
-        })
-
-        const response = await orderService.getOrdersByUserService(userId)
-        return res.status(200).json(response)
-    } catch (error) {
-        console.error('getOrdersByUser error:', error)
-        return res.status(500).json({
-            err: 1,
-            mess: 'Có lỗi khi lấy đơn hàng'
-        })
+  try {
+    const { userId } = req.params;
+    if (!userId) {
+      return res.status(400).json({
+        err: 1,
+        mess: "userId is required",
+      });
     }
-}
+
+    const response = await orderService.getOrdersByUserService(userId);
+    return res.status(200).json(response);
+  } catch (error) {
+    return res.status(500).json({
+      err: 1,
+      mess: "Server error when getting user orders",
+    });
+  }
+};
 
 export const getOrderDetail = async (req, res) => {
-    try {
-        const orderId = req.params.id
-        if (!orderId) return res.status(400).json({
-            err: 1,
-            mess: 'Cần truyền id đơn hàng'
-        })
-
-        const response = await orderService.getOrderDetailService(orderId)
-        return res.status(200).json(response)
-    } catch (error) {
-        console.error('getOrderDetail error:', error)
-        return res.status(500).json({
-            err: 1,
-            mess: 'Có lỗi khi lấy chi tiết đơn hàng'
-        })
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({
+        err: 1,
+        mess: "order id is required",
+      });
     }
-}
 
-export const getAllOrders = async (req, res) => {
-    try {
-        const { limit, page } = req.query
-        const response = await orderService.getAllOrdersService(
-            Number(limit) || 20,
-            Number(page) || 1
-        )
-        return res.status(200).json(response)
-    } catch (error) {
-        console.error('getAllOrders error:', error)
-        return res.status(500).json({
-            err: 1,
-            mess: 'Có lỗi khi lấy tất cả đơn hàng'
-        })
-    }
-}
-
-export const updateOrderStatus = async (req, res) => {
-    try {
-        const orderId = req.params.id
-        const { status } = req.body
-        if (!orderId || !status) return res.status(400).json({
-            err: 1,
-            mess: 'Cần truyền id và status'
-        })
-
-        const response = await orderService.updateOrderStatusService(orderId, status)
-        return res.status(200).json(response)
-    } catch (error) {
-        console.error('updateOrderStatus error:', error)
-        return res.status(500).json({
-            err: 1,
-            mess: 'Có lỗi khi cập nhật trạng thái đơn hàng'
-        })
-    }
-}
-
+    const response = await orderService.getOrderDetailService(id);
+    return res.status(200).json(response);
+  } catch (error) {
+    return res.status(500).json({
+      err: 1,
+      mess: "Server error when getting order detail",
+    });
+  }
+};

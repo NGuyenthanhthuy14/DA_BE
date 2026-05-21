@@ -1,12 +1,9 @@
-const express = require("express");
+import express from "express";
+import * as specialtyController from "../controllers/specialty.controller";
+
 const router = express.Router();
 
-const specialtyController = require("../controllers/specialty.controller");
-
-router.post("/", specialtyController.createSpecialty);
 router.get("/", specialtyController.getAllSpecialties);
 router.get("/:slug", specialtyController.getSpecialtyBySlug);
-router.put("/:id", specialtyController.updateSpecialty);
-router.delete("/:id", specialtyController.deleteSpecialty);
 
-module.exports = router;
+export default router;

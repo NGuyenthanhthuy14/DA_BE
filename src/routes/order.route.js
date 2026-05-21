@@ -1,20 +1,11 @@
-const express = require('express')
-const router = express.Router()
-const orderController = require('../controllers/order.controller')
+import express from "express";
+import * as orderController from "../controllers/order.controller";
+import { verifyUser } from "../middleware/verifyRole";
 
-// Tạo đơn hàng mới
-router.post('/create', orderController.createOrder)
+const router = express.Router();
 
-// Lấy đơn hàng theo userId
-router.get('/user/:userId', orderController.getOrdersByUser)
+router.post("/create", verifyUser, orderController.createOrder);
+router.get("/user/:userId", verifyUser, orderController.getOrdersByUser);
+router.get("/detail/:id", verifyUser, orderController.getOrderDetail);
 
-// Lấy chi tiết đơn hàng
-router.get('/detail/:id', orderController.getOrderDetail)
-
-// Lấy tất cả đơn hàng (admin)
-router.get('/get-all', orderController.getAllOrders)
-
-// Cập nhật trạng thái đơn hàng
-router.put('/status/:id', orderController.updateOrderStatus)
-
-module.exports = router
+export default router;
