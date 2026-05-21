@@ -1,8 +1,9 @@
 import db from '../models'
+import slugify from 'slugify';
 
 export const createProductService =(body) => (new Promise(async(resolve,reject)=> {
     try {
-        const {name,image, type, price, countInStock,rating,description, shop_id} = body
+        const {name, image_url, category_id, specialty_id, price, countInStock,rating,description, shop_id} = body
         const checkExist = await db.Product.findOne({
             name: name
         })
@@ -13,15 +14,23 @@ export const createProductService =(body) => (new Promise(async(resolve,reject)=
             })
             return
         }
+        
+        let slug = slugify(name, { lower: true, strict: true, locale: 'vi' });
+        if (!slug) {
+            slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now();
+        }
+
         const response = await db.Product.create({
             name,
-            image,
-            type, 
+            slug,
+            image_url,
+            category_id,
+            specialty_id: specialty_id || null,
             price, 
             countInStock,
             rating,
-                description,
-                shop_id: shop_id || null
+            description,
+            shop_id: shop_id || null
          })
          resolve({
             err: response ? 0 : 1,
@@ -69,9 +78,27 @@ export const getDetailProductService = (id) => (new Promise(async(resolve,reject
 export const getAllProductService = (limit,page,sort,filter) => (new Promise(async(resolve,reject)=>{
     try {
         const totalProducts = await db.Product.countDocuments()
+        const mongoose = require('mongoose');
         if(filter){
             // console.log(filter)
-            const response  = await db.Product.find({[filter[0]]: {'$regex': filter[1] }}).limit(limit).skip(limit * (page -1))
+            let query = {};
+            if (filter[0] === 'shop_id' || filter[0] === 'specialty_id' || filter[0] === 'category_id') {
+                if ((filter[0] === 'shop_id' || filter[0] === 'specialty_id') && !mongoose.Types.ObjectId.isValid(filter[1])) {
+                    resolve({
+                        err: 0,
+                        mess: 'lấy tất cả sản phẩm thành công',
+                        data: [],
+                        totalProduts : 0,
+                        currentPage: page,
+                        totalPage:  0
+                    });
+                    return;
+                }
+                query[filter[0]] = filter[1];
+            } else {
+                query[filter[0]] = {'$regex': filter[1], '$options': 'i'};
+            }
+            const response  = await db.Product.find(query).limit(limit).skip(limit * (page -1))
             resolve({
                 err: response ? 0 : 1,
                 mess: response ? 'lấy tất cả sản phẩm thành công' : 'lấy tất cả sản phẩm thất bại',
@@ -120,6 +147,14 @@ export const updateProductService = (id, data) => (new Promise(async (resolve, r
                 mess: 'không tìm thấy id sản phẩm'
             });
             return;
+        }
+
+        if (data.name) {
+            let newSlug = slugify(data.name, { lower: true, strict: true, locale: 'vi' });
+            if (!newSlug) {
+                newSlug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now();
+            }
+            data.slug = newSlug;
         }
 
         const response = await db.Product.findByIdAndUpdate(id, data, {new: true} )

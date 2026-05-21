@@ -30,11 +30,6 @@ const createShop = async (body) => {
     status,
   } = body;
 
-  const existedOwnerShop = await Shop.findOne({ owner_id });
-  if (existedOwnerShop) {
-    throw new Error("OWNER_ALREADY_HAS_SHOP");
-  }
-
   const slug = await generateUniqueSlug(name);
 
   const newShop = await Shop.create({
@@ -58,8 +53,8 @@ const createShop = async (body) => {
   return newShop;
 };
 
-const getAllShops = async () => {
-  return await Shop.find().sort({ created_at: -1 }).lean();
+const getAllShops = async (filter = {}) => {
+  return await Shop.find(filter).sort({ created_at: -1 }).lean();
 };
 
 const getShopBySlug = async (slug) => {
@@ -71,7 +66,14 @@ const getShopById = async (id) => {
 };
 
 const getShopProduct = async (shopId) => {
-  const shop = await Shop.findById(shopId);
+  let shop;
+  if (mongoose.Types.ObjectId.isValid(shopId)) {
+    shop = await Shop.findOne({
+      $or: [{ _id: shopId }, { owner_id: shopId }],
+    });
+  } else {
+    shop = await Shop.findOne({ owner_id: shopId });
+  }
 
   if (!shop) {
     throw new Error("SHOP_NOT_FOUND");
@@ -79,8 +81,9 @@ const getShopProduct = async (shopId) => {
 
   const products = await Product.find({
     $or: [
-      { shop_id: shopId },
-      { shop_id: new mongoose.Types.ObjectId(shopId) },
+      { shop_id: shop._id },
+      { shop_id: new mongoose.Types.ObjectId(shop._id) },
+      { shop_id: shopId } 
     ],
   }).sort({ created_at: -1 });
 
@@ -266,6 +269,12 @@ const getShopsWithSpecialties = async ({ lat, lng } = {}) => {
   ]);
 };
 
+const deleteShop = async (id) => {
+  const shop = await Shop.findByIdAndDelete(id);
+  if (!shop) throw new Error("SHOP_NOT_FOUND");
+  return shop;
+};
+
 module.exports = {
   createShop,
   getAllShops,
@@ -273,6 +282,7 @@ module.exports = {
   getShopById,
   getShopProduct,
   updateShop,
+  deleteShop,
   getNearbyShops,
   getShopsWithSpecialties,
 };

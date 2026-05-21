@@ -22,17 +22,17 @@ const createShop = async (req, res) => {
 
     return successResponse(res, shop, "Tạo shop thành công", 201);
   } catch (error) {
-    if (error.message === "OWNER_ALREADY_HAS_SHOP") {
-      return errorResponse(res, "Chủ shop này đã có cửa hàng", 400, "BAD_REQUEST");
-    }
-
     return errorResponse(res, error.message || "Có lỗi ở server");
   }
 };
 
 const getAllShops = async (req, res) => {
   try {
-    const shops = await shopService.getAllShops();
+    const { owner_id } = req.query;
+    const filter = {};
+    if (owner_id) filter.owner_id = owner_id;
+
+    const shops = await shopService.getAllShops(filter);
     return successResponse(res, shops, "Lấy danh sách shop thành công");
   } catch (error) {
     return errorResponse(res, error.message || "Có lỗi ở server");
@@ -126,11 +126,25 @@ const getShopProduct = async (req, res) => {
     return errorResponse(res, error.message || "Có lỗi ở server");
   }
 };
+const deleteShop = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await shopService.deleteShop(id);
+    return successResponse(res, null, "Xoá shop thành công");
+  } catch (error) {
+    if (error.message === "SHOP_NOT_FOUND") {
+      return errorResponse(res, "Không tìm thấy shop", 404, "NOT_FOUND");
+    }
+    return errorResponse(res, error.message || "Có lỗi ở server");
+  }
+};
+
 module.exports = {
   createShop,
   getAllShops,
   getShopBySlug,
   updateShop,
+  deleteShop,
   getNearbyShops,
   getShopsWithSpecialties,
   getShopProduct

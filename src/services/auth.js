@@ -39,7 +39,7 @@ export const registerService = (body) =>
         mess: response ? "Đăng ký thành công" : "Đăng ký thất bại",
         data: response
           ? {
-              id: response.id,
+              _id: response._id,
               full_name: response.full_name,
               email: response.email,
               phone: response.phone,
@@ -95,13 +95,13 @@ export const loginService = async (body) => {
   const isAdmin = user.role === "admin";
 
   const accessToken = await generateAccessToken({
-    id: user.id,
+    id: user._id,
     role: user.role,
     isAdmin,
   });
 
   const refreshToken = await generateRefreshToken({
-    id: user.id,
+    id: user._id,
     role: user.role,
     isAdmin,
   });
@@ -112,7 +112,7 @@ export const loginService = async (body) => {
     accessToken,
     refreshToken,
     user: {
-      id: user.id,
+      _id: user._id,
       full_name: user.full_name,
       email: user.email,
       phone: user.phone,

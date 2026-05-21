@@ -6,18 +6,31 @@ const productSchema = new mongoose.Schema({
         ref: 'Shop',
         default: null,
     },
-    name: {type:String, unique: true},
-    image: {type:String},
-    type: {type:String},
-    price: {type:Number},
-    countInStock: {type:Number},
-    rating: {type:Number},
-    description: {type:String},
-    sold: {type: Number},
-    discount: {type: Number}
-},{
-    timestamps: true
+    category_id: {
+        type: String,
+        default: "",
+    },
+    specialty_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Specialty',
+        default: null,
+    },
+    name: { type: String, unique: true },
+    slug: { type: String, unique: true, trim: true },
+    image_url: { type: String, default: "" },
+    price: { type: Number },
+    description: { type: String },
+    countInStock: { type: Number },
+    rating: { type: Number },
+    sold: { type: Number },
+    discount: { type: Number },
+}, {
+    timestamps: {
+        createdAt: "created_at",
+        updatedAt: "updated_at",
+    },
+    versionKey: false,
 })
 
-const Product = mongoose.model("Product",productSchema)
+const Product = mongoose.model("Product", productSchema)
 module.exports = Product

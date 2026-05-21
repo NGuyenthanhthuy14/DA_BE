@@ -1,13 +1,13 @@
 import joi from 'joi'
-import {name,image, type, price, countInStock,rating,description,shop_id} from '../helpers/joi_validate'
+import {name, image_url, category_id, specialty_id, price, countInStock,rating,description,shop_id} from '../helpers/joi_validate'
 import * as service from '../services'
 export const createProduct = async(req,res) => {
    try {
     console.log(req.body)
-    const {error} = joi.object({name,image, type, price, countInStock,rating,description,shop_id}).validate(req.body)
+    const {error} = joi.object({name, image_url, category_id, specialty_id, price, countInStock,rating,description,shop_id}).validate(req.body)
     if(error) return res.status(400).json({
         err: 1,
-        mess: 'dữ liệu sản phẩm sai hoặc không đầy đủ'
+        mess: error.message || 'dữ liệu sản phẩm sai hoặc không đầy đủ'
     })
     
     const data = req.body
@@ -62,9 +62,10 @@ export const getAllProduct = async(req,res) => {
         const response = await service.getAllProductService(Number(limit) || 11,Number(page) || 1, sort,filter)
         return res.status(200).json(response)
     } catch (error) {
+        console.log(error)
         return res.status(500).json({
             err: 1,
-            mess: 'có lỗi ở server'
+            mess: error.message || 'có lỗi ở server'
         })
     }
 }
@@ -109,7 +110,7 @@ export const getAllType = async(req,res)=> {
         console.log(error)
         return res.status(500).json({
             err: 1,
-            mess: 'có lỗi ở server'
+            mess: error.message || 'có lỗi ở server'
         })
     }
 }

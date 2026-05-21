@@ -10,6 +10,7 @@ router.get("/nearby", shopController.getNearbyShops);
 router.get("/with-specialties", shopController.getShopsWithSpecialties);
 router.get("/:slug", shopController.getShopBySlug);
 router.patch("/:id", shopController.updateShop);
+router.delete("/:id", shopController.deleteShop);
 router.get("/:id/products", shopController.getShopProduct);
 
 module.exports = router;
