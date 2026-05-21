@@ -92,3 +92,12 @@ export const deleteShop = async (req, res) => {
     return errorResponse(res, error.message || "Có lỗi ở server");
   }
 };
+
+export const backfillShopGeohashes = async (req, res) => {
+  try {
+    const result = await shopService.backfillShopGeohashes();
+    return successResponse(res, result, "Backfill geohash cho shop thanh cong");
+  } catch (error) {
+    return errorResponse(res, error.message || "Co loi khi backfill geohash");
+  }
+};

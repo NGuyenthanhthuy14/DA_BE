@@ -55,6 +55,12 @@ const shopSchema = new mongoose.Schema(
         required: true,
       },
     },
+    geohash: {
+      type: String,
+      default: "",
+      index: true,
+      trim: true,
+    },
     address: {
       type: String,
       default: "",
@@ -81,5 +87,6 @@ const shopSchema = new mongoose.Schema(
 );
 
 shopSchema.index({ location: "2dsphere" });
+shopSchema.index({ geohash: 1, status: 1 });
 
 module.exports = mongoose.model("Shop", shopSchema);

@@ -1,6 +1,57 @@
 import db from '../models'
+import Shop from '../models/shop.model';
 import slugify from 'slugify';
 import mongoose from 'mongoose';
+import { buildGeohashPrefixRegexes } from '../utils/geohash.util';
+
+const getVendorShop = async (ownerId) => {
+    return await Shop.findOne({ owner_id: String(ownerId) });
+};
+
+const getVendorShopOrThrow = async (ownerId) => {
+    const shop = await getVendorShop(ownerId);
+    if (!shop) {
+        throw new Error('SHOP_NOT_FOUND');
+    }
+    return shop;
+};
+
+const getFilterQuery = (filter) => {
+    if (!filter) return {};
+
+    let key;
+    let value;
+    if (Array.isArray(filter)) {
+        [key, value] = filter;
+    } else if (typeof filter === 'object') {
+        [key, value] = Object.entries(filter)[0] || [];
+    }
+
+    if (!key) return {};
+
+    if (key === 'shop_id' || key === 'specialty_id' || key === 'category_id') {
+        if ((key === 'shop_id' || key === 'specialty_id') && !mongoose.Types.ObjectId.isValid(value)) {
+            return null;
+        }
+        return { [key]: value };
+    }
+
+    return { [key]: { '$regex': value, '$options': 'i' } };
+};
+
+const getSortQuery = (sort) => {
+    if (!sort) return {};
+
+    if (Array.isArray(sort)) {
+        return { [sort[1]]: sort[0] };
+    }
+
+    if (typeof sort === 'object') {
+        return sort;
+    }
+
+    return {};
+};
 
 export const createProductService =(body) => (new Promise(async(resolve,reject)=> {
     try {
@@ -40,6 +91,152 @@ export const createProductService =(body) => (new Promise(async(resolve,reject)=
          })
     } catch (error) {
         reject(error)
+    }
+}))
+
+export const createVendorProductService = (ownerId, body) => (new Promise(async(resolve, reject) => {
+    try {
+        const shop = await getVendorShopOrThrow(ownerId);
+        const response = await createProductService({
+            ...body,
+            shop_id: shop._id,
+        });
+
+        resolve(response);
+    } catch (error) {
+        reject(error);
+    }
+}))
+
+export const getVendorProductsService = (ownerId, limit, page, sort, filter) => (new Promise(async(resolve, reject) => {
+    try {
+        const shop = await getVendorShopOrThrow(ownerId);
+        const filterQuery = getFilterQuery(filter);
+
+        if (filterQuery === null) {
+            resolve({
+                err: 0,
+                mess: 'lay san pham cua shop thanh cong',
+                data: [],
+                totalProduts: 0,
+                currentPage: page,
+                totalPage: 0
+            });
+            return;
+        }
+
+        const query = {
+            ...filterQuery,
+            shop_id: shop._id,
+        };
+        const sortQuery = getSortQuery(sort);
+        const totalProducts = await db.Product.countDocuments(query);
+        const response = await db.Product.find(query)
+            .limit(limit)
+            .skip(limit * (page - 1))
+            .sort(sortQuery);
+
+        resolve({
+            err: response ? 0 : 1,
+            mess: response ? 'lay san pham cua shop thanh cong' : 'lay san pham cua shop that bai',
+            data: response,
+            totalProduts: totalProducts,
+            currentPage: page,
+            totalPage: Math.ceil(totalProducts / limit)
+        });
+    } catch (error) {
+        reject(error);
+    }
+}))
+
+export const getVendorDetailProductService = (ownerId, id) => (new Promise(async(resolve, reject) => {
+    try {
+        const shop = await getVendorShopOrThrow(ownerId);
+        const response = await db.Product.findOne({
+            _id: id,
+            shop_id: shop._id,
+        });
+
+        resolve({
+            err: response ? 0 : 1,
+            mess: response ? 'lay chi tiet san pham thanh cong' : 'san pham khong ton tai hoac khong thuoc shop cua ban',
+            data: response
+        });
+    } catch (error) {
+        reject(error);
+    }
+}))
+
+export const updateVendorProductService = (ownerId, id, data) => (new Promise(async(resolve, reject) => {
+    try {
+        const shop = await getVendorShopOrThrow(ownerId);
+        const checkExist = await db.Product.findOne({
+            _id: id,
+            shop_id: shop._id,
+        });
+
+        if (!checkExist) {
+            resolve({
+                err: 1,
+                mess: 'san pham khong ton tai hoac khong thuoc shop cua ban'
+            });
+            return;
+        }
+
+        const updateData = { ...data };
+        delete updateData.shop_id;
+
+        if (updateData.name) {
+            let newSlug = slugify(updateData.name, { lower: true, strict: true, locale: 'vi' });
+            if (!newSlug) {
+                newSlug = updateData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now();
+            }
+            updateData.slug = newSlug;
+        }
+
+        const response = await db.Product.findByIdAndUpdate(id, updateData, { new: true });
+        resolve({
+            err: response ? 0 : 1,
+            mess: response ? 'cap nhat san pham thanh cong' : 'cap nhat san pham that bai',
+            data: response
+        });
+    } catch (error) {
+        reject(error);
+    }
+}))
+
+export const deleteVendorProductService = (ownerId, id) => (new Promise(async(resolve, reject) => {
+    try {
+        const shop = await getVendorShopOrThrow(ownerId);
+        const response = await db.Product.findOneAndDelete({
+            _id: id,
+            shop_id: shop._id,
+        });
+
+        resolve({
+            err: response ? 0 : 1,
+            mess: response ? 'xoa san pham thanh cong' : 'san pham khong ton tai hoac khong thuoc shop cua ban'
+        });
+    } catch (error) {
+        reject(error);
+    }
+}))
+
+export const deleteVendorProductAllService = (ownerId, ids) => (new Promise(async(resolve, reject) => {
+    try {
+        const shop = await getVendorShopOrThrow(ownerId);
+        const response = await db.Product.deleteMany({
+            _id: { $in: ids },
+            shop_id: shop._id,
+        });
+
+        resolve({
+            err: response ? 0 : 1,
+            mess: response ? 'xoa nhieu san pham thanh cong' : 'xoa nhieu san pham that bai',
+            deletedCount: response?.deletedCount || 0
+        });
+    } catch (error) {
+        reject(error);
     }
 }))
 
@@ -211,6 +408,12 @@ export const getNearbyProductsService = (lat, lng, maxKm = 20, limit = 20) => (n
             return;
         }
 
+        const geohashRegexes = buildGeohashPrefixRegexes(
+            latNum,
+            lngNum,
+            Number.isFinite(maxKmNum) && maxKmNum > 0 ? maxKmNum : 20
+        );
+
         const response = await db.Product.aggregate([
             {
                 $lookup: {
@@ -225,6 +428,11 @@ export const getNearbyProductsService = (lat, lng, maxKm = 20, limit = 20) => (n
                                         { $eq: [{ $toString: "$_id" }, { $toString: "$$productShopId" }] },
                                     ],
                                 },
+                                status: "active",
+                                $or: [
+                                    { geohash: { $in: geohashRegexes } },
+                                    { geohash: { $in: ["", null] } },
+                                ],
                             },
                         },
                     ],
@@ -235,11 +443,6 @@ export const getNearbyProductsService = (lat, lng, maxKm = 20, limit = 20) => (n
                 $unwind: {
                     path: "$shop",
                     preserveNullAndEmptyArrays: false,
-                },
-            },
-            {
-                $match: {
-                    "shop.status": "active",
                 },
             },
             {

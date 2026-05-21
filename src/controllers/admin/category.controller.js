@@ -2,7 +2,19 @@ import categoryService from "../../services/category.service";
 
 export const getAllCategories = async (req, res) => {
   try {
-    const categories = await categoryService.getAllCategories();
+    const { approval_status, status } = req.query;
+    if (!categoryService.validateApprovalStatus(approval_status)) {
+      return res.status(400).json({
+        err: 1,
+        mess: "Trang thai duyet danh muc khong hop le",
+      });
+    }
+
+    const filter = {};
+    if (approval_status) filter.approval_status = approval_status;
+    if (status) filter.status = status;
+
+    const categories = await categoryService.getAllCategories(filter);
     return res.status(200).json({
       err: 0,
       mess: "Lấy danh sách danh mục thành công",
@@ -50,7 +62,11 @@ export const createCategory = async (req, res) => {
       });
     }
 
-    const category = await categoryService.createCategory(req.body);
+    const category = await categoryService.createCategory({
+      ...req.body,
+      approval_status: "approved",
+      rejected_reason: "",
+    });
     return res.status(201).json({
       err: 0,
       mess: "Tạo danh mục thành công",
@@ -98,6 +114,55 @@ export const updateCategory = async (req, res) => {
     return res.status(500).json({
       err: 1,
       mess: "Lỗi server khi cập nhật danh mục",
+    });
+  }
+};
+
+export const approveCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const category = await categoryService.approveCategory(id);
+    if (!category) {
+      return res.status(404).json({
+        err: 1,
+        mess: "Khong tim thay danh muc de duyet",
+      });
+    }
+
+    return res.status(200).json({
+      err: 0,
+      mess: "Duyet danh muc thanh cong",
+      data: category,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      err: 1,
+      mess: "Loi server khi duyet danh muc",
+    });
+  }
+};
+
+export const rejectCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rejected_reason } = req.body;
+    const category = await categoryService.rejectCategory(id, rejected_reason || "");
+    if (!category) {
+      return res.status(404).json({
+        err: 1,
+        mess: "Khong tim thay danh muc de tu choi",
+      });
+    }
+
+    return res.status(200).json({
+      err: 0,
+      mess: "Tu choi danh muc thanh cong",
+      data: category,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      err: 1,
+      mess: "Loi server khi tu choi danh muc",
     });
   }
 };

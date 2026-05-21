@@ -6,6 +6,7 @@ import shopRoute from "./shop.route";
 import orderRoute from "./order.route";
 import specialtyRoute from "./specialty.route";
 import userRoute from "./user.route";
+import vendorRoute from "./vendor.route";
 import { verifyRoleAdmin } from "../../middleware/verifyRole";
 
 const router = express.Router();
@@ -19,5 +20,6 @@ router.use("/shops", shopRoute);
 router.use("/orders", orderRoute);
 router.use("/specialties", specialtyRoute);
 router.use("/users", userRoute);
+router.use("/vendors", vendorRoute);
 
 export default router;

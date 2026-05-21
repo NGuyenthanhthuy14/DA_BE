@@ -8,8 +8,9 @@ const hashPassword = (password) =>
 export const registerService = (body) =>
   new Promise(async (resolve, reject) => {
     try {
-      const { full_name, email, phone, password, confirmPassword } = body;
+      const { full_name, email, phone, password, confirmPassword, role = "user" } = body;
       const normalizedEmail = email?.trim()?.toLowerCase();
+      const normalizedRole = role === "vendor" ? "vendor" : "user";
 
       const checkEmailExist = await db.User.findOne({ email: normalizedEmail });
       if (checkEmailExist) {
@@ -30,8 +31,10 @@ export const registerService = (body) =>
       const response = await db.User.create({
         full_name,
         email: normalizedEmail,
+        phone: phone || undefined,
         password_hash: hashPassword(password),
-        role: "user",
+        role: normalizedRole,
+        vendor_status: normalizedRole === "vendor" ? "pending" : null,
       });
 
       return resolve({
@@ -44,6 +47,7 @@ export const registerService = (body) =>
               email: response.email,
               phone: response.phone,
               role: response.role,
+              vendor_status: response.vendor_status,
               created_at: response.created_at,
               updated_at: response.updated_at,
             }
@@ -92,17 +96,46 @@ export const loginService = async (body) => {
     };
   }
 
+  if (user.status === "blocked") {
+    return {
+      err: 1,
+      mess: user.blocked_reason
+        ? `Tai khoan da bi khoa: ${user.blocked_reason}`
+        : "Tai khoan da bi khoa",
+      accessToken: null,
+      refreshToken: null,
+      user: null,
+    };
+  }
+
+  if (user.role === "vendor" && user.vendor_status !== "approved") {
+    return {
+      err: 1,
+      mess:
+        user.vendor_status === "rejected"
+          ? "Tai khoan vendor da bi tu choi"
+          : "Tai khoan vendor dang cho admin duyet",
+      accessToken: null,
+      refreshToken: null,
+      user: null,
+    };
+  }
+
   const isAdmin = user.role === "admin";
 
   const accessToken = await generateAccessToken({
     id: user._id,
     role: user.role,
+    vendor_status: user.vendor_status,
+    status: user.status,
     isAdmin,
   });
 
   const refreshToken = await generateRefreshToken({
     id: user._id,
     role: user.role,
+    vendor_status: user.vendor_status,
+    status: user.status,
     isAdmin,
   });
 
@@ -117,6 +150,9 @@ export const loginService = async (body) => {
       email: user.email,
       phone: user.phone,
       role: user.role,
+      vendor_status: user.vendor_status,
+      status: user.status,
+      blocked_reason: user.blocked_reason,
       avatarUrl: user.avatar_url,
       created_at: user.created_at,
       updated_at: user.updated_at,

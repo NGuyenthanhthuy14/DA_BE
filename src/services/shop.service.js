@@ -1,6 +1,7 @@
 import Shop from "../models/shop.model";
 import Product from "../models/ProductModel";
 import { makeSlug } from "../utils/slugify.util";
+import { buildGeohashPrefixRegexes, encodeGeohash } from "../utils/geohash.util";
 import mongoose from "mongoose";
 
 const generateUniqueSlug = async (name) => {
@@ -41,6 +42,7 @@ export const createShop = async (body) => {
     cover_image: cover_image || "",
     latitude,
     longitude,
+    geohash: encodeGeohash(latitude, longitude),
     location: {
       type: "Point",
       coordinates: [longitude, latitude],
@@ -106,6 +108,7 @@ export const updateShop = async (id, body) => {
     body.latitude !== undefined &&
     body.longitude !== undefined
   ) {
+    updateData.geohash = encodeGeohash(body.latitude, body.longitude);
     updateData.location = {
       type: "Point",
       coordinates: [body.longitude, body.latitude],
@@ -121,8 +124,12 @@ export const updateShop = async (id, body) => {
 };
 
 export const getNearbyShops = async ({ lat, lng, maxDistance = 2000 }) => {
+  const radiusKm = maxDistance / 1000;
+  const geohashRegexes = buildGeohashPrefixRegexes(lat, lng, radiusKm);
+
   return await Shop.find({
     status: "active",
+    $or: [{ geohash: { $in: geohashRegexes } }, { geohash: { $in: ["", null] } }],
     location: {
       $near: {
         $geometry: {
@@ -145,6 +152,15 @@ export const getShopsWithSpecialties = async ({ lat, lng } = {}) => {
   return await Shop.aggregate([
     ...(hasLocation
       ? [
+          {
+            $match: {
+              status: "active",
+              $or: [
+                { geohash: { $in: buildGeohashPrefixRegexes(lat, lng, 20) } },
+                { geohash: { $in: ["", null] } },
+              ],
+            },
+          },
           {
             $addFields: {
               distanceKm: {
@@ -271,6 +287,26 @@ export const deleteShop = async (id) => {
   return shop;
 };
 
+export const backfillShopGeohashes = async () => {
+  const shops = await Shop.find({
+    $or: [{ geohash: { $exists: false } }, { geohash: { $in: ["", null] } }],
+    latitude: { $type: "number" },
+    longitude: { $type: "number" },
+  });
+
+  const updates = await Promise.all(
+    shops.map((shop) => {
+      shop.geohash = encodeGeohash(shop.latitude, shop.longitude);
+      return shop.save();
+    })
+  );
+
+  return {
+    matched: shops.length,
+    updated: updates.length,
+  };
+};
+
 export default {
   createShop,
   getAllShops,
@@ -279,6 +315,7 @@ export default {
   getShopProduct,
   updateShop,
   deleteShop,
+  backfillShopGeohashes,
   getNearbyShops,
   getShopsWithSpecialties,
 };

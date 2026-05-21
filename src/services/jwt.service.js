@@ -23,6 +23,8 @@ export const refreshTokenService = (token)=> (new Promise(async(resolve,reject)=
             }
             const access_token = await generateAccessToken({
                 id: decode?.id,
+                role: decode?.role,
+                vendor_status: decode?.vendor_status,
                 isAdmin: decode?.isAdmin
             })
             // console.log(decode)

@@ -2,7 +2,7 @@ import categoryService from "../services/category.service";
 
 export const getAllCategories = async (req, res) => {
   try {
-    const categories = await categoryService.getAllCategories();
+    const categories = await categoryService.getPublicCategories();
     return res.status(200).json({
       err: 0,
       mess: "Get categories successfully",
@@ -19,7 +19,10 @@ export const getAllCategories = async (req, res) => {
 export const getCategoryBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
-    const category = await categoryService.getCategoryBySlug(slug);
+    const category = await categoryService.getCategoryBySlug(slug, {
+      status: "active",
+      approval_status: "approved",
+    });
 
     if (!category) {
       return res.status(404).json({

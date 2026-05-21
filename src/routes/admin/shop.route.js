@@ -4,6 +4,7 @@ import * as shopController from "../../controllers/admin/shop.controller";
 const router = express.Router();
 
 router.get("/", shopController.getAllShops);
+router.patch("/geohash/backfill", shopController.backfillShopGeohashes);
 router.get("/:slug", shopController.getShopBySlug);
 router.get("/:id/products", shopController.getShopProduct);
 router.post("/", shopController.createShop);

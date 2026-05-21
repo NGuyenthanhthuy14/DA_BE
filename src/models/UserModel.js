@@ -33,6 +33,24 @@ const userSchema = new mongoose.Schema(
       default: "user",
     },
 
+    vendor_status: {
+      type: String,
+      enum: ["pending", "approved", "rejected", null],
+      default: null,
+    },
+
+    status: {
+      type: String,
+      enum: ["active", "blocked"],
+      default: "active",
+    },
+
+    blocked_reason: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
     avatar_url: {
       type: String,
       default: "",

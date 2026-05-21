@@ -1,5 +1,5 @@
-import * as service from "../services";
 import joi from "joi";
+import * as authService from "../../services/auth.service";
 
 const isProduction = process.env.NODE_ENV === "production";
 const refreshCookieOptions = {
@@ -27,12 +27,15 @@ export const register = async (req, res) => {
       });
     }
 
-    const response = await service.registerService({ ...req.body, role: "user" });
+    const response = await authService.registerService({
+      ...req.body,
+      role: "vendor",
+    });
     return res.status(200).json(response);
-  } catch (err) {
+  } catch (error) {
     return res.status(500).json({
       err: 1,
-      mess: "Server error",
+      mess: error.message || "Server error",
     });
   }
 };
@@ -52,22 +55,22 @@ export const login = async (req, res) => {
       });
     }
 
-    const response = await service.loginService(req.body);
-    if (response.err || response.user?.role !== "user") {
+    const response = await authService.loginService(req.body);
+    if (response.err || response.user?.role !== "vendor") {
       return res.status(403).json({
         err: 1,
-        mess: "Tai khoan khong co quyen user",
+        mess: response.mess || "Tai khoan khong co quyen vendor",
       });
     }
 
     const { refreshToken, ...data } = response;
-
     res.cookie("refreshToken", refreshToken, refreshCookieOptions);
+
     return res.status(200).json(data);
-  } catch (err) {
+  } catch (error) {
     return res.status(500).json({
       err: 1,
-      mess: "Server error",
+      mess: error.message || "Server error",
     });
   }
 };
@@ -82,12 +85,12 @@ export const refreshToken = async (req, res) => {
       });
     }
 
-    const response = await service.refreshTokenService(token);
+    const response = await authService.refreshTokenService(token);
     return res.status(200).json(response);
   } catch (error) {
     return res.status(500).json({
       err: 1,
-      mess: "Server error",
+      mess: error.message || "Server error",
     });
   }
 };
@@ -97,12 +100,12 @@ export const logout = async (req, res) => {
     res.clearCookie("refreshToken", refreshCookieOptions);
     return res.status(200).json({
       err: 0,
-      mess: "Logout successfully",
+      mess: "Dang xuat vendor thanh cong",
     });
   } catch (error) {
     return res.status(500).json({
       err: 1,
-      mess: "Server error",
+      mess: error.message || "Server error",
     });
   }
 };
