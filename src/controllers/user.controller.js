@@ -29,8 +29,11 @@ const addressSchema = joi
     phone: joi.string().trim().min(8).max(20).required(),
     address: joi.string().trim().max(500).required(),
     city: joi.string().trim().max(100).allow("").default(""),
+    province_id: joi.number().integer().positive().allow(null).default(null),
     district: joi.string().trim().max(100).allow("").default(""),
+    district_id: joi.number().integer().positive().allow(null).default(null),
     ward: joi.string().trim().max(100).allow("").default(""),
+    ward_code: joi.string().trim().max(50).allow("").default(""),
     detail: joi.string().trim().max(500).allow("").default(""),
     is_default: joi.boolean().default(false),
   })
@@ -43,8 +46,11 @@ const updateAddressSchema = joi
     phone: joi.string().trim().min(8).max(20),
     address: joi.string().trim().max(500),
     city: joi.string().trim().max(100).allow(""),
+    province_id: joi.number().integer().positive().allow(null),
     district: joi.string().trim().max(100).allow(""),
+    district_id: joi.number().integer().positive().allow(null),
     ward: joi.string().trim().max(100).allow(""),
+    ward_code: joi.string().trim().max(50).allow(""),
     detail: joi.string().trim().max(500).allow(""),
     is_default: joi.boolean(),
   })

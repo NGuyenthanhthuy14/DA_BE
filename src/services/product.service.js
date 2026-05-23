@@ -262,7 +262,46 @@ export const deleteProductService = (id) => (new Promise(async(resolve,reject)=>
 
 export const getDetailProductService = (id) => (new Promise(async(resolve,reject)=>{
     try {
-        const response = await db.Product.findById(id)
+        const response = await db.Product.findById(id).lean()
+        if (response) {
+            const [reviews, ratingStats] = await Promise.all([
+                db.ProductReview.find({ product: id })
+                    .populate('user', 'full_name avatar_url email')
+                    .sort({ created_at: -1 })
+                    .lean(),
+                db.ProductReview.aggregate([
+                    { $match: { product: new mongoose.Types.ObjectId(id) } },
+                    {
+                        $group: {
+                            _id: '$product',
+                            averageRating: { $avg: '$rating' },
+                            reviewCount: { $sum: 1 },
+                            fiveStar: { $sum: { $cond: [{ $eq: ['$rating', 5] }, 1, 0] } },
+                            fourStar: { $sum: { $cond: [{ $eq: ['$rating', 4] }, 1, 0] } },
+                            threeStar: { $sum: { $cond: [{ $eq: ['$rating', 3] }, 1, 0] } },
+                            twoStar: { $sum: { $cond: [{ $eq: ['$rating', 2] }, 1, 0] } },
+                            oneStar: { $sum: { $cond: [{ $eq: ['$rating', 1] }, 1, 0] } },
+                        }
+                    }
+                ])
+            ])
+            const stats = ratingStats[0]
+            const averageRating = stats ? Number(stats.averageRating.toFixed(1)) : (response.rating || 0)
+            response.rating = response.rating ?? averageRating
+            response.reviews = reviews
+            response.reviewCount = stats?.reviewCount || reviews.length
+            response.ratingSummary = {
+                averageRating,
+                total: stats?.reviewCount || reviews.length,
+                stars: {
+                    5: stats?.fiveStar || 0,
+                    4: stats?.fourStar || 0,
+                    3: stats?.threeStar || 0,
+                    2: stats?.twoStar || 0,
+                    1: stats?.oneStar || 0,
+                }
+            }
+        }
         resolve({
             err: response ? 0 : 1,
             mess: response ? 'lấy chi tiết sản phẩm thành công' : 'sản phẩm không tồn tại',

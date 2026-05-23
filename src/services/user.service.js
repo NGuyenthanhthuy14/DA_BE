@@ -29,8 +29,11 @@ const normalizeAddressPayload = (data) => ({
   phone: data.phone,
   address: data.address,
   city: data.city || "",
+  province_id: data.province_id ?? null,
   district: data.district || "",
+  district_id: data.district_id ?? null,
   ward: data.ward || "",
+  ward_code: data.ward_code || "",
   detail: data.detail || "",
   is_default: Boolean(data.is_default),
 });

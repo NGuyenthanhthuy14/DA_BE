@@ -27,12 +27,25 @@ const addressBookSchema = new mongoose.Schema(
       default: "",
       trim: true,
     },
+    province_id: {
+      type: Number,
+      default: null,
+    },
     district: {
       type: String,
       default: "",
       trim: true,
     },
+    district_id: {
+      type: Number,
+      default: null,
+    },
     ward: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    ward_code: {
       type: String,
       default: "",
       trim: true,

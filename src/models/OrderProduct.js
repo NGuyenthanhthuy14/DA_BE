@@ -43,8 +43,11 @@ const orderSchema = new mongoose.Schema({
         phone: { type: String, required: true },
         address: { type: String, required: true },
         city: { type: String, default: '' },
+        province_id: { type: Number, default: null },
         district: { type: String, default: '' },
+        district_id: { type: Number, default: null },
         ward: { type: String, default: '' },
+        ward_code: { type: String, default: '' },
         detail: { type: String, default: '' },
     },
     shopOrders: [shopOrderSchema],                              // hoá đơn từng shop

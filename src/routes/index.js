@@ -9,6 +9,8 @@ import categoryRoute from './category.route'
 import orderRoute from './order.route'
 import searchRoute from './search.route'
 import paymentRoute from './payment.route'
+import shippingRoute from './shipping.route'
+import ghnRoute from './ghn.route'
 
 const routes = (app) => {
     app.use('/api/auth', authRoute)
@@ -20,6 +22,8 @@ const routes = (app) => {
     app.use("/api/categories", categoryRoute);
     app.use("/api/search", searchRoute);
     app.use("/api/payments", paymentRoute);
+    app.use("/api/shipping", shippingRoute);
+    app.use("/api/ghn", ghnRoute);
     app.use("/api/admin", adminRoute);
     app.use("/api/vendor", vendorRoute);
 }
