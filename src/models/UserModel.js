@@ -1,5 +1,60 @@
 const mongoose = require("mongoose");
 
+const addressBookSchema = new mongoose.Schema(
+  {
+    label: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    fullName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    phone: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    address: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    city: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    district: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    ward: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    detail: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    is_default: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  {
+    timestamps: {
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    },
+  }
+);
+
 const userSchema = new mongoose.Schema(
   {
     full_name: {
@@ -67,6 +122,8 @@ const userSchema = new mongoose.Schema(
         ref: "Shop",
       },
     ],
+
+    address_book: [addressBookSchema],
   },
   {
     timestamps: {

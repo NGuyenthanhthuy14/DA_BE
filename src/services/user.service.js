@@ -23,6 +23,24 @@ const normalizeProfilePayload = (data) => {
   return updateData;
 };
 
+const normalizeAddressPayload = (data) => ({
+  label: data.label || "",
+  fullName: data.fullName,
+  phone: data.phone,
+  address: data.address,
+  city: data.city || "",
+  district: data.district || "",
+  ward: data.ward || "",
+  detail: data.detail || "",
+  is_default: Boolean(data.is_default),
+});
+
+const getUserAddressBookOrNull = async (userId) => {
+  const user = await db.User.findById(userId).select("address_book status");
+  if (!user) return null;
+  return user;
+};
+
 export const getCurrentUserService = (id) =>
   new Promise(async (resolve, reject) => {
     try {
@@ -32,6 +50,187 @@ export const getCurrentUserService = (id) =>
         err: response ? 0 : 1,
         mess: response ? "Lay thong tin user thanh cong" : "Khong tim thay user",
         data: response,
+      });
+    } catch (err) {
+      reject(err);
+    }
+  });
+
+export const getAddressBookService = (userId) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      const user = await getUserAddressBookOrNull(userId);
+
+      resolve({
+        err: user ? 0 : 1,
+        mess: user ? "Lay so dia chi thanh cong" : "Khong tim thay user",
+        data: user ? user.address_book : null,
+      });
+    } catch (err) {
+      reject(err);
+    }
+  });
+
+export const addAddressBookService = (userId, data) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      const user = await getUserAddressBookOrNull(userId);
+      if (!user) {
+        resolve({
+          err: 1,
+          mess: "Khong tim thay user",
+          data: null,
+        });
+        return;
+      }
+
+      if (user.status === "blocked") {
+        resolve({
+          err: 1,
+          mess: "Tai khoan da bi khoa, khong the them dia chi",
+          data: null,
+        });
+        return;
+      }
+
+      const addressData = normalizeAddressPayload(data);
+      if (addressData.is_default || user.address_book.length === 0) {
+        user.address_book.forEach((address) => {
+          address.is_default = false;
+        });
+        addressData.is_default = true;
+      }
+
+      user.address_book.push(addressData);
+      await user.save();
+
+      resolve({
+        err: 0,
+        mess: "Them dia chi thanh cong",
+        data: user.address_book,
+      });
+    } catch (err) {
+      reject(err);
+    }
+  });
+
+export const updateAddressBookService = (userId, addressId, data) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(addressId)) {
+        resolve({
+          err: 1,
+          mess: "address id khong hop le",
+          data: null,
+        });
+        return;
+      }
+
+      const user = await getUserAddressBookOrNull(userId);
+      if (!user) {
+        resolve({
+          err: 1,
+          mess: "Khong tim thay user",
+          data: null,
+        });
+        return;
+      }
+
+      if (user.status === "blocked") {
+        resolve({
+          err: 1,
+          mess: "Tai khoan da bi khoa, khong the cap nhat dia chi",
+          data: null,
+        });
+        return;
+      }
+
+      const address = user.address_book.id(addressId);
+      if (!address) {
+        resolve({
+          err: 1,
+          mess: "Khong tim thay dia chi",
+          data: null,
+        });
+        return;
+      }
+
+      if (data.is_default === true) {
+        user.address_book.forEach((item) => {
+          item.is_default = false;
+        });
+      }
+
+      Object.keys(data).forEach((key) => {
+        address[key] = data[key];
+      });
+
+      await user.save();
+
+      resolve({
+        err: 0,
+        mess: "Cap nhat dia chi thanh cong",
+        data: user.address_book,
+      });
+    } catch (err) {
+      reject(err);
+    }
+  });
+
+export const deleteAddressBookService = (userId, addressId) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(addressId)) {
+        resolve({
+          err: 1,
+          mess: "address id khong hop le",
+          data: null,
+        });
+        return;
+      }
+
+      const user = await getUserAddressBookOrNull(userId);
+      if (!user) {
+        resolve({
+          err: 1,
+          mess: "Khong tim thay user",
+          data: null,
+        });
+        return;
+      }
+
+      if (user.status === "blocked") {
+        resolve({
+          err: 1,
+          mess: "Tai khoan da bi khoa, khong the xoa dia chi",
+          data: null,
+        });
+        return;
+      }
+
+      const address = user.address_book.id(addressId);
+      if (!address) {
+        resolve({
+          err: 1,
+          mess: "Khong tim thay dia chi",
+          data: null,
+        });
+        return;
+      }
+
+      const removedDefault = address.is_default;
+      address.deleteOne();
+
+      if (removedDefault && user.address_book.length > 0) {
+        user.address_book[0].is_default = true;
+      }
+
+      await user.save();
+
+      resolve({
+        err: 0,
+        mess: "Xoa dia chi thanh cong",
+        data: user.address_book,
       });
     } catch (err) {
       reject(err);

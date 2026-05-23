@@ -52,6 +52,14 @@ app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 routes(app);
 
+app.use("/api", (req, res) => {
+    return res.status(404).json({
+        err: 1,
+        mess: `API not found: ${req.method} ${req.originalUrl}`,
+        data: null,
+    });
+});
+
 app.listen(port, () => {
     console.log("Server đang chạy trên cổng: " + port);
 });
