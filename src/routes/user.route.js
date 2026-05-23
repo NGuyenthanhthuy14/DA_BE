@@ -10,6 +10,7 @@ router.patch("/profile", verifyUser, userController.updateProfile);
 router.get("/favorite-shops", verifyUser, userController.getFavoriteShops);
 router.post("/favorite-shops/:shopId", verifyUser, userController.addFavoriteShop);
 router.delete("/favorite-shops/:shopId", verifyUser, userController.removeFavoriteShop);
+router.get("/product-reviews", verifyUser, userController.getMyProductReviews);
 router.post("/product-reviews", verifyUser, userController.createProductReview);
 
 export default router;

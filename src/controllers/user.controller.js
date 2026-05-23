@@ -133,3 +133,15 @@ export const createProductReview = async (req, res) => {
     });
   }
 };
+
+export const getMyProductReviews = async (req, res) => {
+  try {
+    const response = await userService.getMyProductReviewsService(req.user.id);
+    return res.status(200).json(response);
+  } catch (error) {
+    return res.status(500).json({
+      err: 1,
+      mess: "Server error",
+    });
+  }
+};

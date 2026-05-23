@@ -319,6 +319,26 @@ export const createProductReviewService = (userId, data) =>
     }
   });
 
+export const getMyProductReviewsService = (userId) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      const reviews = await db.ProductReview.find({ user: userId })
+        .sort({ created_at: -1 })
+        .populate(reviewPopulate)
+        .populate("order", "status isDelivered deliveredAt createdAt")
+        .lean();
+
+      resolve({
+        err: 0,
+        mess: "Lay danh sach danh gia cua user thanh cong",
+        data: reviews,
+        total: reviews.length,
+      });
+    } catch (err) {
+      reject(err);
+    }
+  });
+
 export const updateUserService = (id, data) =>
   new Promise(async (resolve, reject) => {
     try {
