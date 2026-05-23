@@ -1,4 +1,5 @@
-import user from './auth.route'
+import authRoute from './auth.route'
+import userRoute from './user.route'
 import product from './product.route'
 import shopRoute from './shop.route'
 import specialtyRoute from './specialty.route'
@@ -8,7 +9,8 @@ import categoryRoute from './category.route'
 import orderRoute from './order.route'
 
 const routes = (app) => {
-    app.use('/api/user', user)
+    app.use('/api/auth', authRoute)
+    app.use('/api/user', userRoute)
     app.use('/api/product',product)
     app.use("/api/shops", shopRoute);
     app.use("/api/specialties", specialtyRoute);

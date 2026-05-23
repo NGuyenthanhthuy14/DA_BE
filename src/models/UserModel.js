@@ -60,6 +60,13 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+
+    favorite_shops: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Shop",
+      },
+    ],
   },
   {
     timestamps: {
