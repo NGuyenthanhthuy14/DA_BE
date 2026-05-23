@@ -8,6 +8,7 @@ import vendorRoute from './vendor'
 import categoryRoute from './category.route'
 import orderRoute from './order.route'
 import searchRoute from './search.route'
+import paymentRoute from './payment.route'
 
 const routes = (app) => {
     app.use('/api/auth', authRoute)
@@ -18,6 +19,7 @@ const routes = (app) => {
     app.use("/api/order", orderRoute);
     app.use("/api/categories", categoryRoute);
     app.use("/api/search", searchRoute);
+    app.use("/api/payments", paymentRoute);
     app.use("/api/admin", adminRoute);
     app.use("/api/vendor", vendorRoute);
 }

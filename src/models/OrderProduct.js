@@ -49,6 +49,22 @@ const orderSchema = new mongoose.Schema({
     },
     shopOrders: [shopOrderSchema],                              // hoá đơn từng shop
     paymentMethod: { type: String, required: true },            // cod | bank | ewallet | card
+    paymentProvider: {
+        type: String,
+        enum: ['cod', 'zalopay', 'bank', 'ewallet', 'card', null],
+        default: null,
+    },
+    paymentStatus: {
+        type: String,
+        enum: ['unpaid', 'pending', 'paid', 'failed'],
+        default: 'unpaid',
+    },
+    paymentTransactionId: { type: String, default: '' },
+    paymentOrderUrl: { type: String, default: '' },
+    paymentOrderToken: { type: String, default: '' },
+    paymentQrCode: { type: String, default: '' },
+    zaloPayTransId: { type: String, default: '' },
+    paymentData: { type: Object, default: {} },
     subtotal: { type: Number, required: true },                 // tổng tiền sản phẩm tất cả shop
     shippingTotal: { type: Number, required: true },            // tổng phí ship tất cả shop
     totalPrice: { type: Number, required: true },               // subtotal + shippingTotal
