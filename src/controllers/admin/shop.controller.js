@@ -12,6 +12,8 @@ export const createShop = async (req, res) => {
       ...req.body,
       latitude: Number(latitude),
       longitude: Number(longitude),
+      province_id: req.body.province_id ? Number(req.body.province_id) : null,
+      district_id: req.body.district_id ? Number(req.body.district_id) : null,
     });
 
     return successResponse(res, shop, "Tạo shop thành công", 201);
@@ -67,6 +69,12 @@ export const updateShop = async (req, res) => {
     const payload = { ...req.body };
     if (payload.latitude !== undefined) payload.latitude = Number(payload.latitude);
     if (payload.longitude !== undefined) payload.longitude = Number(payload.longitude);
+    if (payload.province_id !== undefined) {
+      payload.province_id = payload.province_id ? Number(payload.province_id) : null;
+    }
+    if (payload.district_id !== undefined) {
+      payload.district_id = payload.district_id ? Number(payload.district_id) : null;
+    }
 
     const shop = await shopService.updateShop(id, payload);
     return successResponse(res, shop, "Cập nhật shop thành công");

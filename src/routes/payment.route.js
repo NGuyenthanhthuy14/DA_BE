@@ -5,6 +5,7 @@ import { verifyUser } from "../middleware/verifyRole";
 const router = express.Router();
 
 router.post("/zalopay/create", verifyUser, zaloPayController.createPayment);
+router.post("/zalopay/continue/:orderId", verifyUser, zaloPayController.continuePayment);
 router.post("/zalopay/callback", zaloPayController.callback);
 router.get("/zalopay/query/:orderId", verifyUser, zaloPayController.queryPayment);
 

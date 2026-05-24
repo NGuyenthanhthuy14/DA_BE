@@ -1,7 +1,27 @@
 import OrderProduct from "../models/OrderProduct";
 import Shop from "../models/shop.model";
+import mongoose from "mongoose";
 
 const ORDER_STATUSES = ["pending", "confirmed", "shipping", "delivered", "cancelled"];
+
+const createOrderCode = () =>
+  `ORDER_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+
+const getInitialPaymentData = (paymentMethod = "cod") => {
+  if (paymentMethod === "cod") {
+    return {
+      paymentMethod,
+      paymentProvider: "cod",
+      paymentStatus: "unpaid",
+    };
+  }
+
+  return {
+    paymentMethod,
+    paymentProvider: paymentMethod === "zalopay" ? "zalopay" : null,
+    paymentStatus: "pending",
+  };
+};
 
 const getVendorShopOrThrow = async (ownerId) => {
   const shop = await Shop.findOne({ owner_id: String(ownerId) });
@@ -27,6 +47,54 @@ const getOrderStatusUpdateData = (status) => {
   return updateData;
 };
 
+const getOrderLookup = (orderId, extraFilter = {}) => {
+  const lookup = { ...extraFilter };
+
+  if (mongoose.Types.ObjectId.isValid(orderId)) {
+    lookup._id = orderId;
+  } else {
+    lookup.orderCode = String(orderId);
+  }
+
+  return lookup;
+};
+
+const getExpiredPendingFilter = (extraFilter = {}) => ({
+  ...extraFilter,
+  isPaid: false,
+  paymentStatus: "pending",
+  paymentExpiresAt: { $lte: new Date() },
+  status: { $ne: "cancelled" },
+});
+
+const expiredCancelData = () => ({
+  status: "cancelled",
+  paymentStatus: "failed",
+  cancelledAt: new Date(),
+  cancellationReason: "ZaloPay payment expired",
+});
+
+const cancelExpiredPendingPayments = (extraFilter = {}) =>
+  OrderProduct.updateMany(getExpiredPendingFilter(extraFilter), {
+    $set: expiredCancelData(),
+  });
+
+const cancelOrderIfPaymentExpired = async (order) => {
+  if (
+    order &&
+    !order.isPaid &&
+    order.paymentStatus === "pending" &&
+    order.paymentExpiresAt &&
+    order.paymentExpiresAt.getTime() <= Date.now() &&
+    order.status !== "cancelled"
+  ) {
+    order.set(expiredCancelData());
+    await order.save();
+  }
+
+  return order;
+};
+
 export const createOrderService = (body) =>
   new Promise(async (resolve, reject) => {
     try {
@@ -38,6 +106,8 @@ export const createOrderService = (body) =>
         subtotal,
         shippingTotal,
         totalPrice,
+        orderCode,
+        orderId,
       } = body;
 
       if (!userId || !shippingAddress || !shopOrders || shopOrders.length === 0) {
@@ -48,11 +118,14 @@ export const createOrderService = (body) =>
         return;
       }
 
+      const initialPaymentData = getInitialPaymentData(paymentMethod || "cod");
+
       const order = await OrderProduct.create({
         user: userId,
         shippingAddress,
         shopOrders,
-        paymentMethod: paymentMethod || "cod",
+        orderCode: orderCode || (!String(orderId || "").startsWith("ORDER_") ? "" : orderId) || createOrderCode(),
+        ...initialPaymentData,
         subtotal,
         shippingTotal,
         totalPrice,
@@ -71,6 +144,8 @@ export const createOrderService = (body) =>
 export const getOrdersByUserService = (userId) =>
   new Promise(async (resolve, reject) => {
     try {
+      await cancelExpiredPendingPayments({ user: userId });
+
       const orders = await OrderProduct.find({ user: userId })
         .sort({ createdAt: -1 })
         .populate("shopOrders.items.product", "name image_url price");
@@ -86,10 +161,12 @@ export const getOrdersByUserService = (userId) =>
     }
   });
 
-export const getOrderDetailService = (orderId) =>
+export const getOrderDetailService = (orderId, userId) =>
   new Promise(async (resolve, reject) => {
     try {
-      const order = await OrderProduct.findById(orderId)
+      const order = await OrderProduct.findOne(
+        getOrderLookup(orderId, userId ? { user: userId } : {})
+      )
         .populate("user", "full_name email phone")
         .populate("shopOrders.shop", "name slug address cover_image")
         .populate("shopOrders.items.product", "name image_url price");
@@ -101,6 +178,8 @@ export const getOrderDetailService = (orderId) =>
         });
         return;
       }
+
+      await cancelOrderIfPaymentExpired(order);
 
       resolve({
         err: 0,
@@ -168,10 +247,15 @@ export const updateVendorOrderStatusService = (ownerId, orderId, status) =>
     }
   });
 
+export const cancelExpiredPendingPaymentsService = async () => {
+  return cancelExpiredPendingPayments();
+};
+
 export default {
   createOrderService,
   getOrdersByUserService,
   getOrderDetailService,
   getAllOrdersService,
   updateVendorOrderStatusService,
+  cancelExpiredPendingPaymentsService,
 };

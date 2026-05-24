@@ -1,4 +1,6 @@
 import https from "https";
+import mongoose from "mongoose";
+import Shop from "../models/shop.model";
 
 const GHN_DEV_URL = "https://dev-online-gateway.ghn.vn";
 const GHN_PRODUCTION_URL = "https://online-gateway.ghn.vn";
@@ -92,6 +94,20 @@ const normalizePackage = (data) => ({
   weight: Number(data.weight || 500),
 });
 
+const isEmpty = (value) => value === undefined || value === null || value === "";
+
+const getShopIdFromPayload = (data) => data.shopid || data.shop_id || data.shopId;
+
+const findShopForShipping = async (shopId) => {
+  if (mongoose.Types.ObjectId.isValid(shopId)) {
+    return Shop.findOne({
+      $or: [{ _id: shopId }, { owner_id: String(shopId) }],
+    }).lean();
+  }
+
+  return Shop.findOne({ owner_id: String(shopId) }).lean();
+};
+
 const isGhnTestProvince = (province) =>
   province?.ProvinceID === 298 ||
   province?.ProvinceID === 2002 ||
@@ -131,10 +147,8 @@ export const calculateShippingFeeService = (data) =>
       const requiredFields = [
         "from_district_id",
         "from_ward_code",
-        "to_district_id",
-        "to_ward_code",
       ];
-      const missingField = requiredFields.find((field) => data[field] === undefined || data[field] === null || data[field] === "");
+      const missingField = requiredFields.find((field) => isEmpty(data[field]));
 
       if (missingField) {
         resolve({
@@ -145,13 +159,51 @@ export const calculateShippingFeeService = (data) =>
         return;
       }
 
+      let toDistrictId = data.to_district_id;
+      let toWardCode = data.to_ward_code;
+      const payloadShopId = getShopIdFromPayload(data);
+
+      if (!isEmpty(payloadShopId)) {
+        const shop = await findShopForShipping(payloadShopId);
+
+        if (!shop) {
+          resolve({
+            err: 1,
+            mess: "shop not found",
+            data: null,
+          });
+          return;
+        }
+
+        if (isEmpty(shop.district_id) || isEmpty(shop.ward_code)) {
+          resolve({
+            err: 1,
+            mess: "shop shipping address is missing district_id or ward_code",
+            data: null,
+          });
+          return;
+        }
+
+        toDistrictId = shop.district_id;
+        toWardCode = shop.ward_code;
+      }
+
+      if (isEmpty(toDistrictId) || isEmpty(toWardCode)) {
+        resolve({
+          err: 1,
+          mess: "shopid is required",
+          data: null,
+        });
+        return;
+      }
+
       const packageInfo = normalizePackage(data);
       const requestBody = {
         service_type_id: Number(data.service_type_id || 2),
         from_district_id: Number(data.from_district_id),
         from_ward_code: String(data.from_ward_code),
-        to_district_id: Number(data.to_district_id),
-        to_ward_code: String(data.to_ward_code),
+        to_district_id: Number(toDistrictId),
+        to_ward_code: String(toWardCode),
         ...packageInfo,
         insurance_value: Number(data.insurance_value || 0),
         coupon: data.coupon || null,

@@ -1,10 +1,12 @@
 import crypto from "crypto";
+import mongoose from "mongoose";
 import db from "../models";
 
 const ZALOPAY_SANDBOX_CREATE_URL = "https://sb-openapi.zalopay.vn/v2/create";
 const ZALOPAY_SANDBOX_QUERY_URL = "https://sb-openapi.zalopay.vn/v2/query";
 const ZALOPAY_PRODUCTION_CREATE_URL = "https://openapi.zalopay.vn/v2/create";
 const ZALOPAY_PRODUCTION_QUERY_URL = "https://openapi.zalopay.vn/v2/query";
+const ZALOPAY_PAYMENT_TIMEOUT_MINUTES = 20;
 
 const getZaloPayConfig = () => {
   const appId = process.env.ZALOPAY_APP_ID;
@@ -72,14 +74,86 @@ const buildOrderItems = (order) =>
     }))
   );
 
+const getPaymentAmount = (order, options = {}) => {
+  const realAmount = Number(order.totalPrice);
+
+  if (options.amount !== undefined && options.amount !== null) {
+    return Number(options.amount);
+  }
+
+  if (process.env.ZALOPAY_TEST_AMOUNT) {
+    return Number(process.env.ZALOPAY_TEST_AMOUNT);
+  }
+
+  if (process.env.ZALOPAY_ENV !== "production") {
+    let testAmount = realAmount;
+    while (testAmount >= 10000) {
+      testAmount /= 10;
+    }
+    return Math.round(testAmount);
+  }
+
+  return realAmount;
+};
+
+const buildOrderLookup = (userId, orderId) => {
+  const lookup = { user: userId };
+
+  if (mongoose.Types.ObjectId.isValid(orderId)) {
+    lookup._id = orderId;
+  } else {
+    lookup.orderCode = String(orderId);
+  }
+
+  return lookup;
+};
+
+const getZaloPayExpiresAt = () =>
+  new Date(Date.now() + ZALOPAY_PAYMENT_TIMEOUT_MINUTES * 60 * 1000);
+
+const isExpiredPendingPayment = (order) =>
+  !order.isPaid &&
+  order.paymentStatus === "pending" &&
+  order.paymentExpiresAt &&
+  order.paymentExpiresAt.getTime() <= Date.now();
+
+const cancelExpiredPaymentOrder = async (order) => {
+  order.status = "cancelled";
+  order.paymentStatus = "failed";
+  order.cancelledAt = order.cancelledAt || new Date();
+  order.cancellationReason = "ZaloPay payment expired";
+  order.paymentData = {
+    ...(order.paymentData || {}),
+    expiredAt: new Date(),
+  };
+  await order.save();
+};
+
 export const createZaloPayPaymentService = async (userId, orderId, options = {}) => {
   const config = getZaloPayConfig();
-  const order = await db.OrderProduct.findOne({ _id: orderId, user: userId });
+  const order = await db.OrderProduct.findOne(buildOrderLookup(userId, orderId));
 
   if (!order) {
     return {
       err: 1,
       mess: "Khong tim thay don hang",
+      data: null,
+    };
+  }
+
+  if (order.status === "cancelled") {
+    return {
+      err: 1,
+      mess: "Don hang da bi huy",
+      data: null,
+    };
+  }
+
+  if (isExpiredPendingPayment(order)) {
+    await cancelExpiredPaymentOrder(order);
+    return {
+      err: 1,
+      mess: "Don hang da het han thanh toan va da bi huy",
       data: null,
     };
   }
@@ -94,7 +168,9 @@ export const createZaloPayPaymentService = async (userId, orderId, options = {})
 
   const appTransId = createAppTransId(order._id);
   const appTime = Date.now();
-  const amount = Number(order.totalPrice);
+  const paymentExpiresAt = getZaloPayExpiresAt();
+  const realAmount = Number(order.totalPrice);
+  const amount = getPaymentAmount(order, options);
   const appUser = String(userId);
   const embedData = JSON.stringify({
     redirecturl: options.redirectUrl || config.redirectUrl || "",
@@ -128,12 +204,16 @@ export const createZaloPayPaymentService = async (userId, orderId, options = {})
     paymentProvider: "zalopay",
     paymentStatus: zaloPayResponse.return_code === 1 ? "pending" : "failed",
     paymentTransactionId: appTransId,
+    paymentExpiresAt: zaloPayResponse.return_code === 1 ? paymentExpiresAt : undefined,
     paymentOrderUrl: zaloPayResponse.order_url || "",
     paymentOrderToken: zaloPayResponse.order_token || "",
     paymentQrCode: zaloPayResponse.qr_code || "",
     paymentData: {
       createRequest: requestData,
       createResponse: zaloPayResponse,
+      realAmount,
+      paymentAmount: amount,
+      paymentExpiresAt,
     },
   });
 
@@ -145,8 +225,11 @@ export const createZaloPayPaymentService = async (userId, orderId, options = {})
         : zaloPayResponse.return_message || "Tao thanh toan ZaloPay that bai",
     data: {
       orderId: order._id,
+      orderCode: order.orderCode,
       app_trans_id: appTransId,
       amount,
+      realAmount,
+      paymentExpiresAt,
       order_url: zaloPayResponse.order_url,
       order_token: zaloPayResponse.order_token,
       zp_trans_token: zaloPayResponse.zp_trans_token,
@@ -179,6 +262,21 @@ export const handleZaloPayCallbackService = async ({ data, mac }) => {
     };
   }
 
+  if (order.status === "cancelled") {
+    return {
+      return_code: 1,
+      return_message: "order cancelled",
+    };
+  }
+
+  if (isExpiredPendingPayment(order)) {
+    await cancelExpiredPaymentOrder(order);
+    return {
+      return_code: 1,
+      return_message: "payment expired",
+    };
+  }
+
   if (!order.isPaid) {
     order.isPaid = true;
     order.paidAt = new Date(callbackData.server_time || Date.now());
@@ -203,7 +301,7 @@ export const handleZaloPayCallbackService = async ({ data, mac }) => {
 
 export const queryZaloPayPaymentService = async (userId, orderId) => {
   const config = getZaloPayConfig();
-  const order = await db.OrderProduct.findOne({ _id: orderId, user: userId });
+  const order = await db.OrderProduct.findOne(buildOrderLookup(userId, orderId));
 
   if (!order) {
     return {
@@ -218,6 +316,23 @@ export const queryZaloPayPaymentService = async (userId, orderId) => {
       err: 1,
       mess: "Don hang chua co giao dich ZaloPay",
       data: null,
+    };
+  }
+
+  if (order.status === "cancelled") {
+    return {
+      err: 1,
+      mess: "Don hang da bi huy",
+      data: order,
+    };
+  }
+
+  if (isExpiredPendingPayment(order)) {
+    await cancelExpiredPaymentOrder(order);
+    return {
+      err: 1,
+      mess: "Don hang da het han thanh toan va da bi huy",
+      data: order,
     };
   }
 

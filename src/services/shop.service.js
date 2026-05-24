@@ -28,6 +28,9 @@ export const createShop = async (body) => {
     longitude,
     address,
     formatted_address,
+    province_id,
+    district_id,
+    ward_code,
     status,
   } = body;
 
@@ -49,6 +52,9 @@ export const createShop = async (body) => {
     },
     address: address || "",
     formatted_address: formatted_address || "",
+    province_id: province_id ?? null,
+    district_id: district_id ?? null,
+    ward_code: ward_code || "",
     status: status || "active",
   });
 

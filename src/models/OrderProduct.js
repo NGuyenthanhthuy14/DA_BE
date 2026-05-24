@@ -33,6 +33,12 @@ const shopOrderSchema = new mongoose.Schema({
 
 // ── Đơn hàng tổng ──
 const orderSchema = new mongoose.Schema({
+    orderCode: {
+        type: String,
+        default: '',
+        trim: true,
+        index: true,
+    },
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
@@ -67,6 +73,7 @@ const orderSchema = new mongoose.Schema({
     paymentOrderToken: { type: String, default: '' },
     paymentQrCode: { type: String, default: '' },
     zaloPayTransId: { type: String, default: '' },
+    paymentExpiresAt: { type: Date },
     paymentData: { type: Object, default: {} },
     subtotal: { type: Number, required: true },                 // tổng tiền sản phẩm tất cả shop
     shippingTotal: { type: Number, required: true },            // tổng phí ship tất cả shop
@@ -80,6 +87,8 @@ const orderSchema = new mongoose.Schema({
     paidAt: { type: Date },
     isDelivered: { type: Boolean, default: false },
     deliveredAt: { type: Date },
+    cancelledAt: { type: Date },
+    cancellationReason: { type: String, default: '' },
 }, {
     timestamps: true
 })

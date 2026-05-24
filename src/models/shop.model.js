@@ -71,6 +71,19 @@ const shopSchema = new mongoose.Schema(
       default: "",
       trim: true,
     },
+    province_id: {
+      type: Number,
+      default: null,
+    },
+    district_id: {
+      type: Number,
+      default: null,
+    },
+    ward_code: {
+      type: String,
+      default: "",
+      trim: true,
+    },
     status: {
       type: String,
       enum: ["active", "inactive"],

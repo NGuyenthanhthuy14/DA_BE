@@ -50,7 +50,7 @@ export const getOrderDetail = async (req, res) => {
       });
     }
 
-    const response = await orderService.getOrderDetailService(id);
+    const response = await orderService.getOrderDetailService(id, req.user.id);
     return res.status(200).json(response);
   } catch (error) {
     return res.status(500).json({
