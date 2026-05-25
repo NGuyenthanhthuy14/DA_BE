@@ -75,6 +75,79 @@ export const createVendorSpecialty = async (ownerId, body) => {
   });
 };
 
+export const getVendorSpecialties = async (ownerId, filter = {}) => {
+  const shop = await getVendorShopOrThrow(ownerId);
+  return await Specialty.find({
+    ...filter,
+    shop_id: shop._id,
+  }).sort({ created_at: -1 }).lean();
+};
+
+const getVendorPendingSpecialtyOrThrow = async (ownerId, specialtyId) => {
+  if (!mongoose.Types.ObjectId.isValid(specialtyId)) {
+    throw new Error("INVALID_ID");
+  }
+
+  const shop = await getVendorShopOrThrow(ownerId);
+  const specialty = await Specialty.findById(specialtyId);
+
+  if (!specialty) {
+    throw new Error("SPECIALTY_NOT_FOUND");
+  }
+
+  if (!specialty.shop_id || specialty.shop_id.toString() !== shop._id.toString()) {
+    throw new Error("SPECIALTY_NOT_OWNED");
+  }
+
+  if (specialty.approval_status !== "pending") {
+    throw new Error("SPECIALTY_ALREADY_REVIEWED");
+  }
+
+  return specialty;
+};
+
+export const updateVendorSpecialty = async (ownerId, specialtyId, body) => {
+  const specialty = await getVendorPendingSpecialtyOrThrow(ownerId, specialtyId);
+  const updateData = {};
+
+  if (Object.prototype.hasOwnProperty.call(body, "name")) {
+    updateData.name = body.name;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(body, "description")) {
+    updateData.description = body.description || "";
+  }
+
+  if (Object.prototype.hasOwnProperty.call(body, "image_url")) {
+    updateData.image_url = body.image_url || "";
+  }
+
+  if (Object.prototype.hasOwnProperty.call(body, "slug")) {
+    updateData.slug = await generateUniqueSlug(body.slug || body.name || specialty.name, specialtyId);
+  } else if (body.name && body.name !== specialty.name) {
+    updateData.slug = await generateUniqueSlug(body.name, specialtyId);
+  }
+
+  updateData.approval_status = "pending";
+  updateData.status = "inactive";
+  updateData.rejected_reason = "";
+  updateData.reviewed_by = null;
+  updateData.reviewed_at = null;
+
+  return await Specialty.findByIdAndUpdate(specialtyId, updateData, {
+    new: true,
+    runValidators: true,
+  });
+};
+
+export const deleteVendorSpecialty = async (ownerId, specialtyId) => {
+  const specialty = await getVendorPendingSpecialtyOrThrow(ownerId, specialtyId);
+  await mongoose.connection.collection("shop_specialties").deleteMany({
+    specialty_id: specialty._id,
+  });
+  return await Specialty.findByIdAndDelete(specialty._id);
+};
+
 export const getAllSpecialties = async (filter = {}) => {
   return await Specialty.find(filter).sort({ created_at: -1 }).lean();
 };
@@ -259,6 +332,9 @@ export const deleteSpecialty = async (id) => {
 export default {
   createSpecialty,
   createVendorSpecialty,
+  getVendorSpecialties,
+  updateVendorSpecialty,
+  deleteVendorSpecialty,
   getAllSpecialties,
   getPublicSpecialties,
   getSpecialtyBySlug,
