@@ -1,7 +1,10 @@
 import Specialty from "../models/SpecialtyModel";
 import Product from "../models/ProductModel";
+import Shop from "../models/shop.model";
 import { makeSlug } from "../utils/slugify.util";
 import mongoose from "mongoose";
+
+const APPROVAL_STATUSES = ["pending", "approved", "rejected"];
 
 const generateUniqueSlug = async (name, excludeId = null) => {
   const baseSlug = makeSlug(name) || Date.now().toString();
@@ -24,35 +27,67 @@ const generateUniqueSlug = async (name, excludeId = null) => {
   return slug;
 };
 
-export const createSpecialty = async (body) => {
-  const { category_id, name, description, image_url, slug } = body;
+const getVendorShopOrThrow = async (ownerId) => {
+  const shop = await Shop.findOne({ owner_id: String(ownerId) });
+  if (!shop) {
+    throw new Error("SHOP_NOT_FOUND");
+  }
+
+  return shop;
+};
+
+export const validateApprovalStatus = (approvalStatus) => {
+  return !approvalStatus || APPROVAL_STATUSES.includes(approvalStatus);
+};
+
+export const createSpecialty = async (body, creator = {}) => {
+  const { name, description, image_url, slug } = body;
 
   if (!name) {
     throw new Error("NAME_REQUIRED");
   }
 
-  if (!category_id) {
-    throw new Error("CATEGORY_REQUIRED");
-  }
-
   const newSlug = await generateUniqueSlug(slug || name);
+  const isVendor = creator.role === "vendor";
 
   return await Specialty.create({
-    category_id,
     name,
     slug: newSlug,
     description: description || "",
     image_url: image_url || "",
+    created_by: creator.userId || null,
+    created_by_role: creator.role || "admin",
+    shop_id: creator.shopId || null,
+    approval_status: isVendor ? "pending" : "approved",
+    rejected_reason: "",
+    status: isVendor ? "inactive" : "active",
+    reviewed_by: isVendor ? null : creator.userId || null,
+    reviewed_at: isVendor ? null : new Date(),
   });
 };
 
-export const getAllSpecialties = async () => {
-  return await Specialty.find().sort({ created_at: -1 }).lean();
+export const createVendorSpecialty = async (ownerId, body) => {
+  const shop = await getVendorShopOrThrow(ownerId);
+  return await createSpecialty(body, {
+    userId: ownerId,
+    role: "vendor",
+    shopId: shop._id,
+  });
 };
 
+export const getAllSpecialties = async (filter = {}) => {
+  return await Specialty.find(filter).sort({ created_at: -1 }).lean();
+};
 
-export const getSpecialtyBySlug = async (slug) => {
-  const specialty = await Specialty.findOne({ slug }).lean();
+export const getPublicSpecialties = async () => {
+  return await getAllSpecialties({
+    status: "active",
+    approval_status: "approved",
+  });
+};
+
+export const getSpecialtyBySlug = async (slug, filter = {}) => {
+  const specialty = await Specialty.findOne({ slug, ...filter }).lean();
   if (!specialty) return null;
 
   const specIdStr = specialty._id.toString();
@@ -103,7 +138,7 @@ export const getSpecialtyBySlug = async (slug) => {
         discount: 1,
         sold: 1,
         countInStock: 1,
-        category_id: 1,
+        specialty_id: 1,
         shop: {
           _id: "$shop._id",
           name: "$shop.name",
@@ -148,6 +183,54 @@ export const updateSpecialty = async (id, body) => {
   });
 };
 
+export const approveSpecialty = async (id, reviewerId = null) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new Error("INVALID_ID");
+  }
+
+  const specialty = await Specialty.findByIdAndUpdate(
+    id,
+    {
+      approval_status: "approved",
+      rejected_reason: "",
+      status: "active",
+      reviewed_by: reviewerId || null,
+      reviewed_at: new Date(),
+    },
+    { new: true, runValidators: true }
+  );
+
+  if (!specialty) {
+    throw new Error("SPECIALTY_NOT_FOUND");
+  }
+
+  return specialty;
+};
+
+export const rejectSpecialty = async (id, rejectedReason = "", reviewerId = null) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new Error("INVALID_ID");
+  }
+
+  const specialty = await Specialty.findByIdAndUpdate(
+    id,
+    {
+      approval_status: "rejected",
+      rejected_reason: rejectedReason,
+      status: "inactive",
+      reviewed_by: reviewerId || null,
+      reviewed_at: new Date(),
+    },
+    { new: true, runValidators: true }
+  );
+
+  if (!specialty) {
+    throw new Error("SPECIALTY_NOT_FOUND");
+  }
+
+  return specialty;
+};
+
 export const deleteSpecialty = async (id) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new Error("INVALID_ID");
@@ -175,8 +258,13 @@ export const deleteSpecialty = async (id) => {
 
 export default {
   createSpecialty,
+  createVendorSpecialty,
   getAllSpecialties,
+  getPublicSpecialties,
   getSpecialtyBySlug,
   updateSpecialty,
+  approveSpecialty,
+  rejectSpecialty,
+  validateApprovalStatus,
   deleteSpecialty,
 };

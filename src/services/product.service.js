@@ -1,5 +1,6 @@
 import db from '../models'
 import Shop from '../models/shop.model';
+import Specialty from '../models/SpecialtyModel';
 import slugify from 'slugify';
 import mongoose from 'mongoose';
 import { buildGeohashPrefixRegexes } from '../utils/geohash.util';
@@ -29,14 +30,27 @@ const getFilterQuery = (filter) => {
 
     if (!key) return {};
 
-    if (key === 'shop_id' || key === 'specialty_id' || key === 'category_id') {
-        if ((key === 'shop_id' || key === 'specialty_id') && !mongoose.Types.ObjectId.isValid(value)) {
+    if (key === 'shop_id' || key === 'specialty_id') {
+        if (!mongoose.Types.ObjectId.isValid(value)) {
             return null;
         }
         return { [key]: value };
     }
 
     return { [key]: { '$regex': value, '$options': 'i' } };
+};
+
+const ensureApprovedSpecialty = async (specialtyId) => {
+    if (!specialtyId) return true;
+    if (!mongoose.Types.ObjectId.isValid(specialtyId)) return false;
+
+    const specialty = await Specialty.findOne({
+        _id: specialtyId,
+        status: 'active',
+        approval_status: 'approved',
+    }).lean();
+
+    return Boolean(specialty);
 };
 
 const getSortQuery = (sort) => {
@@ -55,7 +69,7 @@ const getSortQuery = (sort) => {
 
 export const createProductService =(body) => (new Promise(async(resolve,reject)=> {
     try {
-        const {name, image_url, category_id, specialty_id, price, countInStock,rating,description, shop_id} = body
+        const {name, image_url, specialty_id, price, countInStock,rating,description, shop_id} = body
         const checkExist = await db.Product.findOne({
             name: name
         })
@@ -63,6 +77,15 @@ export const createProductService =(body) => (new Promise(async(resolve,reject)=
             resolve({
                 err: 1,
                 mess: 'tên sản phẩm đã tồn tại vui lòng chọn sản phẩm khác'
+            })
+            return
+        }
+
+        const validSpecialty = await ensureApprovedSpecialty(specialty_id);
+        if (!validSpecialty) {
+            resolve({
+                err: 1,
+                mess: 'dac san khong ton tai hoac chua duoc duyet'
             })
             return
         }
@@ -76,7 +99,6 @@ export const createProductService =(body) => (new Promise(async(resolve,reject)=
             name,
             slug,
             image_url,
-            category_id,
             specialty_id: specialty_id || null,
             price, 
             countInStock,
@@ -185,6 +207,20 @@ export const updateVendorProductService = (ownerId, id, data) => (new Promise(as
 
         const updateData = { ...data };
         delete updateData.shop_id;
+
+        if (Object.prototype.hasOwnProperty.call(updateData, 'specialty_id')) {
+            if (!updateData.specialty_id) {
+                updateData.specialty_id = null;
+            }
+            const validSpecialty = await ensureApprovedSpecialty(updateData.specialty_id);
+            if (!validSpecialty) {
+                resolve({
+                    err: 1,
+                    mess: 'dac san khong ton tai hoac chua duoc duyet'
+                });
+                return;
+            }
+        }
 
         if (updateData.name) {
             let newSlug = slugify(updateData.name, { lower: true, strict: true, locale: 'vi' });
@@ -318,8 +354,8 @@ export const getAllProductService = (limit,page,sort,filter) => (new Promise(asy
         if(filter){
             // console.log(filter)
             let query = {};
-            if (filter[0] === 'shop_id' || filter[0] === 'specialty_id' || filter[0] === 'category_id') {
-                if ((filter[0] === 'shop_id' || filter[0] === 'specialty_id') && !mongoose.Types.ObjectId.isValid(filter[1])) {
+            if (filter[0] === 'shop_id' || filter[0] === 'specialty_id') {
+                if (!mongoose.Types.ObjectId.isValid(filter[1])) {
                     resolve({
                         err: 0,
                         mess: 'lấy tất cả sản phẩm thành công',
@@ -383,6 +419,20 @@ export const updateProductService = (id, data) => (new Promise(async (resolve, r
                 mess: 'không tìm thấy id sản phẩm'
             });
             return;
+        }
+
+        if (Object.prototype.hasOwnProperty.call(data, 'specialty_id')) {
+            if (!data.specialty_id) {
+                data.specialty_id = null;
+            }
+            const validSpecialty = await ensureApprovedSpecialty(data.specialty_id);
+            if (!validSpecialty) {
+                resolve({
+                    err: 1,
+                    mess: 'dac san khong ton tai hoac chua duoc duyet'
+                });
+                return;
+            }
         }
 
         if (data.name) {

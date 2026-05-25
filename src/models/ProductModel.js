@@ -6,10 +6,6 @@ const productSchema = new mongoose.Schema({
         ref: 'Shop',
         default: null,
     },
-    category_id: {
-        type: String,
-        default: "",
-    },
     specialty_id: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Specialty',

@@ -2,7 +2,6 @@ import joi from "joi";
 import {
     name,
     image_url,
-    category_id,
     specialty_id,
     price,
     countInStock,
@@ -30,7 +29,6 @@ export const createProduct = async (req, res) => {
         const schema = joi.object({
             name,
             image_url,
-            category_id,
             specialty_id,
             price,
             countInStock,

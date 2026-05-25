@@ -2,11 +2,6 @@ const mongoose = require("mongoose");
 
 const specialtySchema = new mongoose.Schema(
   {
-    category_id: {
-      type: String,
-      required: true,
-      trim: true,
-    },
     name: {
       type: String,
       required: true,
@@ -27,6 +22,45 @@ const specialtySchema = new mongoose.Schema(
       type: String,
       default: "",
       trim: true,
+    },
+    created_by: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    created_by_role: {
+      type: String,
+      enum: ["vendor", "admin", null],
+      default: null,
+    },
+    shop_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Shop",
+      default: null,
+    },
+    approval_status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "approved",
+    },
+    rejected_reason: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    reviewed_by: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    reviewed_at: {
+      type: Date,
+      default: null,
+    },
+    status: {
+      type: String,
+      enum: ["active", "inactive"],
+      default: "active",
     },
   },
   {

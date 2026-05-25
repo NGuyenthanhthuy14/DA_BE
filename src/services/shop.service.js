@@ -216,8 +216,16 @@ export const getShopsWithSpecialties = async ({ lat, lng } = {}) => {
     {
       $lookup: {
         from: "specialties",
-        localField: "shop_specs.specialty_id",
-        foreignField: "_id",
+        let: { specialtyIds: { $ifNull: ["$shop_specs.specialty_id", []] } },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $in: ["$_id", "$$specialtyIds"] },
+              status: "active",
+              approval_status: "approved",
+            },
+          },
+        ],
         as: "specialties",
       },
     },
@@ -246,7 +254,6 @@ export const getShopsWithSpecialties = async ({ lat, lng } = {}) => {
               slug: "$$sp.slug",
               description: "$$sp.description",
               image_url: "$$sp.image_url",
-              category_id: "$$sp.category_id",
               is_featured: {
                 $ifNull: [
                   {
