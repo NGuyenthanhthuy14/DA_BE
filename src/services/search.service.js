@@ -143,7 +143,6 @@ const searchProducts = async (keyword, limit, page) => {
         $project: {
           _id: 1,
           shop_id: 1,
-          category_id: 1,
           specialty_id: 1,
           name: 1,
           slug: 1,

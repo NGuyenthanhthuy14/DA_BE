@@ -3,7 +3,7 @@ import OrderProduct from "./OrderProduct";
 import Product from './ProductModel'
 import User from './UserModel'
 import Shops from "./shop.model";
-import Category from "./CategoryModel";
+import Specialty from "./SpecialtyModel";
 import ProductReview from "./ProductReviewModel";
 
 const  db = {
@@ -11,7 +11,7 @@ const  db = {
     OrderProduct,
     Product,
     Shops,
-    Category,
+    Specialty,
     ProductReview
 }
 export default db
