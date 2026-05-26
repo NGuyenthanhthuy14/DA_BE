@@ -4,7 +4,7 @@ import { successResponse, errorResponse } from "../utils/response.util";
 export const getAllShops = async (req, res) => {
   try {
     const { owner_id } = req.query;
-    const filter = {};
+    const filter = { status: "active" };
     if (owner_id) filter.owner_id = owner_id;
 
     const shops = await shopService.getAllShops(filter);
@@ -19,7 +19,7 @@ export const getShopBySlug = async (req, res) => {
     const { slug } = req.params;
     const shop = await shopService.getShopBySlug(slug);
 
-    if (!shop) {
+    if (!shop || shop.status !== "active") {
       return errorResponse(res, "Shop not found", 404, "NOT_FOUND");
     }
 
@@ -66,7 +66,7 @@ export const getShopsWithSpecialties = async (req, res) => {
 export const getShopProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const products = await shopService.getShopProduct(id);
+    const products = await shopService.getShopProduct(id, { activeOnly: true });
     return successResponse(res, products, "Get shop products successfully");
   } catch (error) {
     if (error.message === "SHOP_NOT_FOUND") {

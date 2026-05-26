@@ -89,6 +89,20 @@ const shopSchema = new mongoose.Schema(
       enum: ["active", "inactive"],
       default: "active",
     },
+    block_reason: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    blocked_at: {
+      type: Date,
+      default: null,
+    },
+    blocked_by: {
+      type: String,
+      default: "",
+      trim: true,
+    },
   },
   {
     timestamps: {

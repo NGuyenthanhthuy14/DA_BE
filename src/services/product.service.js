@@ -40,6 +40,24 @@ const getFilterQuery = (filter) => {
     return { [key]: { '$regex': value, '$options': 'i' } };
 };
 
+const getActiveShopProductQuery = async (baseQuery = {}) => {
+    const activeShopIds = await Shop.find({ status: 'active' }).distinct('_id');
+
+    return {
+        $and: [
+            baseQuery,
+            {
+                $or: [
+                    { shop_id: null },
+                    { shop_id: { $exists: false } },
+                    { shop_id: { $in: activeShopIds } },
+                    { shop_id: { $in: activeShopIds.map((id) => id.toString()) } },
+                ],
+            },
+        ],
+    };
+};
+
 const ensureApprovedSpecialty = async (specialtyId) => {
     if (!specialtyId) return true;
     if (!mongoose.Types.ObjectId.isValid(specialtyId)) return false;
@@ -296,9 +314,13 @@ export const deleteProductService = (id) => (new Promise(async(resolve,reject)=>
     }
 }))
 
-export const getDetailProductService = (id) => (new Promise(async(resolve,reject)=>{
+export const getDetailProductService = (id, { activeShopOnly = false } = {}) => (new Promise(async(resolve,reject)=>{
     try {
-        const response = await db.Product.findById(id).lean()
+        let response = await db.Product.findById(id).lean()
+        if (response && activeShopOnly && response.shop_id) {
+            const shop = await Shop.findOne({ _id: response.shop_id, status: 'active' }).lean();
+            if (!shop) response = null;
+        }
         if (response) {
             const [reviews, ratingStats] = await Promise.all([
                 db.ProductReview.find({ product: id })
@@ -348,8 +370,40 @@ export const getDetailProductService = (id) => (new Promise(async(resolve,reject
     }
 }))
 
-export const getAllProductService = (limit,page,sort,filter) => (new Promise(async(resolve,reject)=>{
+export const getAllProductService = (limit,page,sort,filter, { activeShopOnly = false } = {}) => (new Promise(async(resolve,reject)=>{
     try {
+        if (activeShopOnly) {
+            const baseQuery = getFilterQuery(filter);
+            if (baseQuery === null) {
+                resolve({
+                    err: 0,
+                    mess: 'lay tat ca san pham thanh cong',
+                    data: [],
+                    totalProduts : 0,
+                    currentPage: page,
+                    totalPage:  0
+                });
+                return;
+            }
+
+            const query = await getActiveShopProductQuery(baseQuery);
+            const totalProducts = await db.Product.countDocuments(query);
+            const response = await db.Product.find(query)
+                .limit(limit)
+                .skip(limit * (page - 1))
+                .sort(getSortQuery(sort));
+
+            resolve({
+                err: response ? 0 : 1,
+                mess: response ? 'lay tat ca san pham thanh cong' : 'lay tat ca san pham that bai',
+                data: response,
+                totalProduts : totalProducts,
+                currentPage: page,
+                totalPage: Math.ceil(totalProducts / limit)
+            });
+            return;
+        }
+
         const totalProducts = await db.Product.countDocuments()
         if(filter){
             // console.log(filter)

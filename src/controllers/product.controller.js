@@ -10,7 +10,9 @@ export const getDetailProduct = async (req, res) => {
       });
     }
 
-    const response = await productService.getDetailProductService(id);
+    const response = await productService.getDetailProductService(id, {
+      activeShopOnly: true,
+    });
     return res.status(200).json(response);
   } catch (error) {
     return res.status(500).json({
@@ -27,7 +29,8 @@ export const getAllProduct = async (req, res) => {
       Number(limit) || 11,
       Number(page) || 1,
       sort,
-      filter
+      filter,
+      { activeShopOnly: true }
     );
 
     return res.status(200).json(response);

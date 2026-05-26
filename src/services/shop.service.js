@@ -73,7 +73,11 @@ export const getShopById = async (id) => {
   return await Shop.findById(id);
 };
 
-export const getShopProduct = async (shopId) => {
+export const getShopByOwnerId = async (ownerId) => {
+  return await Shop.findOne({ owner_id: String(ownerId) });
+};
+
+export const getShopProduct = async (shopId, { activeOnly = false } = {}) => {
   let shop;
   if (mongoose.Types.ObjectId.isValid(shopId)) {
     shop = await Shop.findOne({
@@ -84,6 +88,10 @@ export const getShopProduct = async (shopId) => {
   }
 
   if (!shop) {
+    throw new Error("SHOP_NOT_FOUND");
+  }
+
+  if (activeOnly && shop.status !== "active") {
     throw new Error("SHOP_NOT_FOUND");
   }
 
@@ -127,6 +135,34 @@ export const updateShop = async (id, body) => {
   });
 
   return updatedShop;
+};
+
+export const updateVendorShop = async (ownerId, body) => {
+  const shop = await getShopByOwnerId(ownerId);
+  if (!shop) {
+    throw new Error("SHOP_NOT_FOUND");
+  }
+
+  return updateShop(shop._id, body);
+};
+
+export const blockShop = async (id, { reason, blocked_by }) => {
+  const shop = await Shop.findByIdAndUpdate(
+    id,
+    {
+      status: "inactive",
+      block_reason: reason,
+      blocked_at: new Date(),
+      blocked_by: blocked_by || "",
+    },
+    {
+      new: true,
+      runValidators: true,
+    }
+  );
+
+  if (!shop) throw new Error("SHOP_NOT_FOUND");
+  return shop;
 };
 
 export const getNearbyShops = async ({ lat, lng, maxDistance = 2000 }) => {
@@ -300,6 +336,12 @@ export const deleteShop = async (id) => {
   return shop;
 };
 
+export const deleteVendorShop = async (ownerId) => {
+  const shop = await Shop.findOneAndDelete({ owner_id: String(ownerId) });
+  if (!shop) throw new Error("SHOP_NOT_FOUND");
+  return shop;
+};
+
 export const backfillShopGeohashes = async () => {
   const shops = await Shop.find({
     $or: [{ geohash: { $exists: false } }, { geohash: { $in: ["", null] } }],
@@ -325,9 +367,13 @@ export default {
   getAllShops,
   getShopBySlug,
   getShopById,
+  getShopByOwnerId,
   getShopProduct,
   updateShop,
+  updateVendorShop,
+  blockShop,
   deleteShop,
+  deleteVendorShop,
   backfillShopGeohashes,
   getNearbyShops,
   getShopsWithSpecialties,
