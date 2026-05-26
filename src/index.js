@@ -31,8 +31,11 @@ app.use(
             // Allow non-browser clients without Origin header
             if (!origin) return callback(null, true);
 
-            const isLocalDevIp = /^http:\/\/\d{1,3}(\.\d{1,3}){3}:3000$/.test(origin);
-            if (allowedOrigins.has(origin) || isLocalDevIp) {
+            const isLocalhostAnyPort = /^http:\/\/localhost:\d+$/.test(origin);
+            const isLoopbackAnyPort = /^http:\/\/127\.0\.0\.1:\d+$/.test(origin);
+            const isLocalDevIp = /^http:\/\/\d{1,3}(\.\d{1,3}){3}:\d+$/.test(origin);
+
+            if (allowedOrigins.has(origin) || isLocalhostAnyPort || isLoopbackAnyPort || isLocalDevIp) {
                 return callback(null, true);
             }
 
