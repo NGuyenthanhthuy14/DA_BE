@@ -159,6 +159,99 @@ export const getPublicSpecialties = async () => {
   });
 };
 
+export const getNearbySpecialties = async (lat, lng, maxKm = 20, limit = 20) => {
+  const latNum = Number(lat);
+  const lngNum = Number(lng);
+  const maxKmNum = Number(maxKm);
+  const limitNum = Number(limit);
+
+  if (
+    !Number.isFinite(latNum) ||
+    !Number.isFinite(lngNum) ||
+    latNum < -90 ||
+    latNum > 90 ||
+    lngNum < -180 ||
+    lngNum > 180
+  ) {
+    throw new Error("INVALID_COORDINATES");
+  }
+
+  const radiusKm = Number.isFinite(maxKmNum) && maxKmNum > 0 ? maxKmNum : 20;
+  const resultLimit = Number.isFinite(limitNum) && limitNum > 0 ? limitNum : 20;
+
+  return await Shop.aggregate([
+    {
+      $geoNear: {
+        near: {
+          type: "Point",
+          coordinates: [lngNum, latNum],
+        },
+        distanceField: "distanceMeters",
+        maxDistance: radiusKm * 1000,
+        spherical: true,
+        query: { status: "active" },
+      },
+    },
+    {
+      $lookup: {
+        from: "specialties",
+        let: { shopId: "$_id" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ["$shop_id", "$$shopId"] },
+              status: "active",
+              approval_status: "approved",
+            },
+          },
+        ],
+        as: "specialties",
+      },
+    },
+    {
+      $unwind: {
+        path: "$specialties",
+        preserveNullAndEmptyArrays: false,
+      },
+    },
+    {
+      $sort: {
+        distanceMeters: 1,
+        "specialties.created_at": -1,
+      },
+    },
+    {
+      $limit: resultLimit,
+    },
+    {
+      $project: {
+        _id: "$specialties._id",
+        name: "$specialties.name",
+        slug: "$specialties.slug",
+        description: "$specialties.description",
+        image_url: "$specialties.image_url",
+        approval_status: "$specialties.approval_status",
+        status: "$specialties.status",
+        created_at: "$specialties.created_at",
+        updated_at: "$specialties.updated_at",
+        distanceKm: {
+          $round: [{ $divide: ["$distanceMeters", 1000] }, 2],
+        },
+        shop: {
+          _id: "$_id",
+          name: "$name",
+          slug: "$slug",
+          address: "$address",
+          formatted_address: "$formatted_address",
+          cover_image: "$cover_image",
+          latitude: "$latitude",
+          longitude: "$longitude",
+        },
+      },
+    },
+  ]);
+};
+
 export const getSpecialtyBySlug = async (slug, filter = {}) => {
   const specialty = await Specialty.findOne({ slug, ...filter }).lean();
   if (!specialty) return null;
@@ -337,6 +430,7 @@ export default {
   deleteVendorSpecialty,
   getAllSpecialties,
   getPublicSpecialties,
+  getNearbySpecialties,
   getSpecialtyBySlug,
   updateSpecialty,
   approveSpecialty,

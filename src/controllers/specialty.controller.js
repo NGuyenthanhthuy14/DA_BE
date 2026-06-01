@@ -10,6 +10,34 @@ export const getAllSpecialties = async (req, res) => {
   }
 };
 
+export const getNearbySpecialties = async (req, res) => {
+  try {
+    const { lat, lng, maxKm, limit } = req.query;
+    if (lat === undefined || lng === undefined) {
+      return errorResponse(res, "lat and lng are required", 400, "BAD_REQUEST");
+    }
+
+    const specialties = await specialtyService.getNearbySpecialties(
+      lat,
+      lng,
+      maxKm || 20,
+      limit || 20
+    );
+
+    return successResponse(res, {
+      specialties,
+      total: specialties.length,
+      radiusKm: Number(maxKm) || 20,
+    }, "Get nearby specialties successfully");
+  } catch (error) {
+    if (error.message === "INVALID_COORDINATES") {
+      return errorResponse(res, "latitude, longitude khong hop le", 400, "BAD_REQUEST");
+    }
+
+    return errorResponse(res, error.message || "Server error");
+  }
+};
+
 export const getSpecialtyBySlug = async (req, res) => {
   try {
     const { slug } = req.params;

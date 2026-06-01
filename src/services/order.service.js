@@ -95,6 +95,30 @@ const cancelOrderIfPaymentExpired = async (order) => {
   return order;
 };
 
+const normalizePagination = (limit = 20, page = 1) => {
+  const normalizedLimit = Math.max(Number(limit) || 20, 1);
+  const normalizedPage = Math.max(Number(page) || 1, 1);
+
+  return {
+    limit: normalizedLimit,
+    page: normalizedPage,
+  };
+};
+
+const keepVendorShopOrderOnly = (order, shopId) => {
+  const orderObject =
+    typeof order.toObject === "function" ? order.toObject() : order;
+  const normalizedShopId = String(shopId);
+
+  return {
+    ...orderObject,
+    shopOrders: (orderObject.shopOrders || []).filter(
+      (shopOrder) =>
+        String(shopOrder.shop?._id || shopOrder.shop) === normalizedShopId
+    ),
+  };
+};
+
 export const createOrderService = (body) =>
   new Promise(async (resolve, reject) => {
     try {
@@ -214,6 +238,67 @@ export const getAllOrdersService = (limit = 20, page = 1) =>
     }
   });
 
+export const getVendorOrdersService = (ownerId, limit = 20, page = 1) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      const shop = await getVendorShopOrThrow(ownerId);
+      const pagination = normalizePagination(limit, page);
+      const filter = { "shopOrders.shop": shop._id };
+
+      await cancelExpiredPendingPayments(filter);
+
+      const totalOrders = await OrderProduct.countDocuments(filter);
+      const orders = await OrderProduct.find(filter)
+        .sort({ createdAt: -1 })
+        .limit(pagination.limit)
+        .skip(pagination.limit * (pagination.page - 1))
+        .populate("user", "full_name email phone")
+        .populate("shopOrders.items.product", "name image_url price");
+
+      resolve({
+        err: 0,
+        mess: "Lay danh sach don hang cua shop thanh cong",
+        data: orders.map((order) => keepVendorShopOrderOnly(order, shop._id)),
+        totalOrders,
+        currentPage: pagination.page,
+        totalPage: Math.ceil(totalOrders / pagination.limit),
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
+
+export const getVendorOrderDetailService = (ownerId, orderId) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      const shop = await getVendorShopOrThrow(ownerId);
+      const order = await OrderProduct.findOne(
+        getOrderLookup(orderId, { "shopOrders.shop": shop._id })
+      )
+        .populate("user", "full_name email phone")
+        .populate("shopOrders.shop", "name slug address cover_image")
+        .populate("shopOrders.items.product", "name image_url price");
+
+      if (!order) {
+        resolve({
+          err: 1,
+          mess: "Khong tim thay don hang hoac don hang khong thuoc shop cua ban",
+        });
+        return;
+      }
+
+      await cancelOrderIfPaymentExpired(order);
+
+      resolve({
+        err: 0,
+        mess: "Lay chi tiet don hang cua shop thanh cong",
+        data: keepVendorShopOrderOnly(order, shop._id),
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
+
 export const updateVendorOrderStatusService = (ownerId, orderId, status) =>
   new Promise(async (resolve, reject) => {
     try {
@@ -256,6 +341,8 @@ export default {
   getOrdersByUserService,
   getOrderDetailService,
   getAllOrdersService,
+  getVendorOrdersService,
+  getVendorOrderDetailService,
   updateVendorOrderStatusService,
   cancelExpiredPendingPaymentsService,
 };
