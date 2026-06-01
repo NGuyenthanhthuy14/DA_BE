@@ -4,7 +4,6 @@ import {
     image_url,
     specialty_id,
     price,
-    countInStock,
     rating,
     description,
 } from "../../helpers/joi_validate";
@@ -31,7 +30,6 @@ export const createProduct = async (req, res) => {
             image_url,
             specialty_id,
             price,
-            countInStock,
             rating,
             description,
         });

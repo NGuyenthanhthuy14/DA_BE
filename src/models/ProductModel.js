@@ -16,10 +16,7 @@ const productSchema = new mongoose.Schema({
     image_url: { type: String, default: "" },
     price: { type: Number },
     description: { type: String },
-    countInStock: { type: Number },
     rating: { type: Number },
-    sold: { type: Number },
-    discount: { type: Number },
 }, {
     timestamps: {
         createdAt: "created_at",

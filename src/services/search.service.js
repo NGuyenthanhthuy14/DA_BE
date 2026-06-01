@@ -149,10 +149,7 @@ const searchProducts = async (keyword, limit, page) => {
           image_url: 1,
           price: 1,
           description: 1,
-          countInStock: 1,
           rating: 1,
-          sold: 1,
-          discount: 1,
           created_at: 1,
           updated_at: 1,
           shop: {

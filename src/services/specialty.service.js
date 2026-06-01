@@ -301,9 +301,6 @@ export const getSpecialtyBySlug = async (slug, filter = {}) => {
         price: 1,
         rating: 1,
         description: 1,
-        discount: 1,
-        sold: 1,
-        countInStock: 1,
         specialty_id: 1,
         shop: {
           _id: "$shop._id",

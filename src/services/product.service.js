@@ -87,7 +87,7 @@ const getSortQuery = (sort) => {
 
 export const createProductService =(body) => (new Promise(async(resolve,reject)=> {
     try {
-        const {name, image_url, specialty_id, price, countInStock,rating,description, shop_id} = body
+        const {name, image_url, specialty_id, price, rating,description, shop_id} = body
         const checkExist = await db.Product.findOne({
             name: name
         })
@@ -119,7 +119,6 @@ export const createProductService =(body) => (new Promise(async(resolve,reject)=
             image_url,
             specialty_id: specialty_id || null,
             price, 
-            countInStock,
             rating,
             description,
             shop_id: shop_id || null
@@ -630,8 +629,6 @@ export const getNearbyProductsService = (lat, lng, maxKm = 20, limit = 20) => (n
                     price: 1,
                     rating: 1,
                     description: 1,
-                    discount: 1,
-                    sold: 1,
                     distanceKm: 1,
                     shop: {
                         _id: "$shop._id",

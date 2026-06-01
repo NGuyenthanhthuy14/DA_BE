@@ -96,10 +96,7 @@ const products = [
     image_url: image("o-mai-mo-gung-300g"),
     price: 85000,
     description: "O mai mo xao gung vi chua ngot, cay am, dong hop 300g.",
-    countInStock: 120,
     rating: 4.7,
-    sold: 38,
-    discount: 10,
   },
   {
     shopName: "Cua hang Dac San Ha Noi",
@@ -108,10 +105,7 @@ const products = [
     image_url: image("o-mai-sau-bao-tu-250g"),
     price: 79000,
     description: "Sau bao tu gion, vi chua cay man ngot can bang.",
-    countInStock: 95,
     rating: 4.6,
-    sold: 24,
-    discount: 0,
   },
   {
     shopName: "Cua hang Dac San Ha Noi",
@@ -120,10 +114,7 @@ const products = [
     image_url: image("tra-non-tom-thai-nguyen-200g"),
     price: 145000,
     description: "Tra non tom huong com nhe, nuoc xanh trong, hau ngot.",
-    countInStock: 60,
     rating: 4.8,
-    sold: 41,
-    discount: 5,
   },
   {
     shopName: "Qua Hue Xua",
@@ -132,10 +123,7 @@ const products = [
     image_url: image("me-xung-deo-hue-500g"),
     price: 68000,
     description: "Me xung deo thom mui me rang, phu hop dung tra.",
-    countInStock: 150,
     rating: 4.5,
-    sold: 57,
-    discount: 8,
   },
   {
     shopName: "Qua Hue Xua",
@@ -144,10 +132,7 @@ const products = [
     image_url: image("me-xung-gion-hue-350g"),
     price: 72000,
     description: "Me xung gion, ngot vua, dong hop tien lam qua.",
-    countInStock: 80,
     rating: 4.4,
-    sold: 18,
-    discount: 0,
   },
   {
     shopName: "Banh Pia Tan Hung",
@@ -156,10 +141,7 @@ const products = [
     image_url: image("banh-pia-sau-rieng-trung-muoi-6-cai"),
     price: 118000,
     description: "Banh pia nhan sau rieng, dau xanh va trung muoi.",
-    countInStock: 100,
     rating: 4.7,
-    sold: 63,
-    discount: 12,
   },
   {
     shopName: "Banh Pia Tan Hung",
@@ -168,10 +150,7 @@ const products = [
     image_url: image("banh-pia-mini-dau-xanh-400g"),
     price: 89000,
     description: "Banh pia mini nhan dau xanh, it ngot, de chia phan.",
-    countInStock: 130,
     rating: 4.3,
-    sold: 29,
-    discount: 0,
   },
 ];
 
@@ -249,12 +228,14 @@ const seed = async () => {
       image_url: product.image_url,
       price: product.price,
       description: product.description,
-      countInStock: product.countInStock,
       rating: product.rating,
-      sold: product.sold,
-      discount: product.discount,
     });
   }
+
+  await Product.collection.updateMany(
+    {},
+    { $unset: { countInStock: "", sold: "", discount: "" } }
+  );
 
   console.log("Seed product mock data completed");
   console.log(`Shops: ${shops.length}`);
