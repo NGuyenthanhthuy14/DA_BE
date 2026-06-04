@@ -4,6 +4,7 @@ import productRoute from "./product.route";
 import orderRoute from "./order.route";
 import specialtyRoute from "./specialty.route";
 import shopRoute from "./shop.route";
+import statisticsRoute from "./statistics.route";
 import { verifyRoleVendor } from "../../middleware/verifyRole";
 
 const router = express.Router();
@@ -15,5 +16,6 @@ router.use("/shops", shopRoute);
 router.use("/products", productRoute);
 router.use("/orders", orderRoute);
 router.use("/specialties", specialtyRoute);
+router.use("/statistics", statisticsRoute);
 
 export default router;
