@@ -1,4 +1,5 @@
 import specialtyService from "../services/specialty.service";
+import specialtyStoryService from "../services/specialtyStory.service";
 import { successResponse, errorResponse } from "../utils/response.util";
 
 export const getAllSpecialties = async (req, res) => {
@@ -51,6 +52,20 @@ export const getSpecialtyBySlug = async (req, res) => {
     }
 
     return successResponse(res, specialty, "Get specialty detail successfully");
+  } catch (error) {
+    return errorResponse(res, error.message || "Server error");
+  }
+};
+
+export const getSpecialtyStoryBySlug = async (req, res) => {
+  try {
+    const story = await specialtyStoryService.getPublishedStoryBySpecialtySlug(req.params.slug);
+
+    if (!story) {
+      return errorResponse(res, "Specialty story not found", 404, "NOT_FOUND");
+    }
+
+    return successResponse(res, story, "Get specialty story successfully");
   } catch (error) {
     return errorResponse(res, error.message || "Server error");
   }

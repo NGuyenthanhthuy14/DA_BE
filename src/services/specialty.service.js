@@ -1,4 +1,5 @@
 import Specialty from "../models/SpecialtyModel";
+import SpecialtyStory from "../models/SpecialtyStoryModel";
 import Product from "../models/ProductModel";
 import Shop from "../models/shop.model";
 import { makeSlug } from "../utils/slugify.util";
@@ -416,6 +417,7 @@ export const deleteSpecialty = async (id) => {
     throw new Error("SPECIALTY_HAS_PRODUCTS");
   }
 
+  await SpecialtyStory.deleteOne({ specialty_id: specialty._id });
   return await Specialty.findByIdAndDelete(id);
 };
 
