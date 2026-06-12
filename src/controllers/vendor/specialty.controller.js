@@ -78,6 +78,19 @@ export const createSpecialty = async (req, res) => {
   }
 };
 
+export const getAvailableSpecialties = async (req, res) => {
+  try {
+    const specialties = await specialtyService.getPublicSpecialties();
+    return res.status(200).json({
+      err: 0,
+      mess: "Lay danh sach dac san da duyet thanh cong",
+      data: specialties,
+    });
+  } catch (error) {
+    return handleSpecialtyError(res, error);
+  }
+};
+
 export const getMySpecialties = async (req, res) => {
   try {
     const { approval_status, status } = req.query;

@@ -3,7 +3,8 @@ import * as specialtyController from "../../controllers/vendor/specialty.control
 
 const router = express.Router();
 
-router.get("/", specialtyController.getMySpecialties);
+router.get("/", specialtyController.getAvailableSpecialties);
+router.get("/mine", specialtyController.getMySpecialties);
 router.get("/pending", specialtyController.getPendingSpecialties);
 router.post("/", specialtyController.createSpecialty);
 router.put("/:id", specialtyController.updateSpecialty);
